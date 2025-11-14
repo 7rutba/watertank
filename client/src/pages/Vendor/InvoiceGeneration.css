@@ -1,0 +1,124 @@
+.invoice-generation {
+  padding: var(--spacing-md) 0;
+}
+
+.invoices-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-lg);
+}
+
+.invoice-card {
+  padding: var(--spacing-md);
+}
+
+.invoice-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--spacing-md);
+  padding-bottom: var(--spacing-sm);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.invoice-header h3 {
+  margin: 0 0 var(--spacing-xs) 0;
+  color: var(--primary-color);
+  font-size: var(--font-size-lg);
+}
+
+.status-badge {
+  display: inline-block;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--border-radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+}
+
+.status-draft {
+  background-color: var(--secondary-light);
+  color: var(--secondary-color);
+}
+
+.status-sent {
+  background-color: var(--info-light);
+  color: var(--info-color);
+}
+
+.status-paid {
+  background-color: var(--success-light);
+  color: var(--success-color);
+}
+
+.status-overdue {
+  background-color: var(--danger-light);
+  color: var(--danger-color);
+}
+
+.status-cancelled {
+  background-color: var(--danger-light);
+  color: var(--danger-color);
+}
+
+.invoice-amount {
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  color: var(--success-color);
+}
+
+.invoice-details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  margin-bottom: var(--spacing-md);
+}
+
+.invoice-details p {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.invoice-details strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.invoice-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--border-color);
+}
+
+.invoice-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .invoices-list {
+    grid-template-columns: 1fr;
+  }
+
+  .invoice-header {
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+
+  .invoice-amount {
+    font-size: var(--font-size-lg);
+  }
+
+  .invoice-actions {
+    flex-direction: column;
+  }
+
+  .invoice-actions button {
+    width: 100%;
+  }
+}
+

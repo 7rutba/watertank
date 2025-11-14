@@ -1,0 +1,126 @@
+/* App styles - Using CSS variables and regular CSS */
+.App {
+  min-height: 100vh;
+  background-color: var(--bg-secondary, #f8f9fa);
+}
+
+.vendor-main,
+.society-main,
+.admin-main {
+  padding: var(--spacing-lg, 1.5rem) 0;
+  min-height: calc(100vh - 80px);
+}
+
+.App-topbar {
+  background-color: var(--bg-primary, #ffffff);
+  border-bottom: 1px solid var(--border-color, #dee2e6);
+  padding: var(--spacing-md, 1rem) 0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: var(--shadow-sm, 0 1px 2px 0 rgba(0, 0, 0, 0.05));
+}
+
+.topbar-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.app-logo {
+  color: var(--primary-color, #007bff);
+  font-size: var(--font-size-xl, 1.25rem);
+  font-weight: 700;
+  margin: 0;
+}
+
+.App-header {
+  text-align: center;
+  padding: var(--spacing-xl, 2rem) 0;
+  margin-bottom: var(--spacing-xl, 2rem);
+}
+
+.App-header h1 {
+  color: var(--primary-color, #007bff);
+  margin-bottom: var(--spacing-sm, 0.5rem);
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.App-header p {
+  color: var(--text-secondary, #6c757d);
+  font-size: var(--font-size-lg, 1.125rem);
+}
+
+.components-showcase {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg, 1.5rem);
+}
+
+.components-showcase h2 {
+  color: var(--text-primary, #212529);
+  margin-bottom: var(--spacing-md, 1rem);
+  font-size: var(--font-size-xl, 1.25rem);
+  font-weight: 600;
+}
+
+.button-group {
+  display: flex;
+  gap: var(--spacing-sm, 0.5rem);
+  flex-wrap: wrap;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md, 1rem);
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .App {
+    padding: var(--spacing-md, 1rem) 0;
+  }
+
+  .App-header {
+    padding: var(--spacing-lg, 1.5rem) 0;
+    margin-bottom: var(--spacing-lg, 1.5rem);
+  }
+
+  .App-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .App-header p {
+    font-size: var(--font-size-base, 1rem);
+  }
+
+  .topbar-content {
+    flex-direction: column;
+    gap: var(--spacing-sm, 0.5rem);
+    align-items: flex-start;
+  }
+
+  .app-logo {
+    font-size: var(--font-size-lg, 1.125rem);
+  }
+
+  .button-group {
+    flex-direction: column;
+  }
+
+  .button-group button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  .App-header h1 {
+    font-size: 1.25rem;
+  }
+
+  .components-showcase h2 {
+    font-size: var(--font-size-lg, 1.125rem);
+  }
+}

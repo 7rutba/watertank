@@ -1,0 +1,72 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+# Production builds
+dist/
+build/
+*.log
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# Uploads and temporary files
+uploads/
+temp/
+tmp/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Coverage and testing
+coverage/
+.nyc_output/
+*.lcov
+
+# Misc
+.cache/
+.parcel-cache/
+.next/
+out/
+
+# Server specific
+server/uploads/
+server/temp/
+server/logs/
+
+# Client specific (old client folder if exists)
+client/node_modules/
+client/build/
+client/dist/
+
+# Client-new specific
+client-new/node_modules/
+client-new/dist/
+client-new/.vite/
+
+# Logs
+logs/
+*.log
+

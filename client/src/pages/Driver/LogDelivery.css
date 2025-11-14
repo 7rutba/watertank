@@ -1,0 +1,42 @@
+.log-delivery {
+  padding: var(--spacing-md) 0;
+}
+
+.delivery-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+/* Reuse styles from LogCollection.css */
+.delivery-form .form-row,
+.delivery-form .form-group,
+.delivery-form .total-amount,
+.delivery-form .location-info,
+.delivery-form .file-input,
+.delivery-form .photo-preview,
+.delivery-form .form-actions,
+.delivery-form .alert {
+  /* Same styles as LogCollection */
+}
+
+.photo-preview {
+  margin-top: var(--spacing-sm);
+  max-width: 100%;
+}
+
+.photo-preview img {
+  width: 100%;
+  max-width: 300px;
+  height: auto;
+  border-radius: var(--border-radius);
+  border: 1px solid var(--border-color);
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .delivery-form .form-row {
+    grid-template-columns: 1fr;
+  }
+}
+

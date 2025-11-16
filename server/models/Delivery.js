@@ -77,9 +77,11 @@ const deliverySchema = new mongoose.Schema({
   timestamps: true,
 });
 
-// Calculate total amount before saving
-deliverySchema.pre('save', function(next) {
-  this.totalAmount = this.quantity * this.deliveryRate;
+// Calculate total amount before validation so required validator passes
+deliverySchema.pre('validate', function(next) {
+  const qty = Number(this.quantity) || 0;
+  const rate = Number(this.deliveryRate) || 0;
+  this.totalAmount = qty * rate;
   next();
 });
 

@@ -7,6 +7,9 @@ const {
   updateDriver,
   deleteDriver,
   getDriverStats,
+  markAttendance,
+  getAttendance,
+  getSalary,
 } = require('../controllers/driverController');
 const { protect, vendorAccess, authorize } = require('../middleware/auth');
 
@@ -23,6 +26,13 @@ router.route('/:id')
   .delete(deleteDriver);
 
 router.get('/:id/stats', getDriverStats);
+
+// Attendance routes
+router.post('/:id/attendance', markAttendance);
+router.get('/:id/attendance', getAttendance);
+
+// Salary calculation
+router.get('/:id/salary', getSalary);
 
 module.exports = router;
 

@@ -28,12 +28,34 @@ const Vendors = () => {
     },
     gstNumber: '',
     panNumber: '',
+    subscriptionPlanId: '',
+    billingCycle: 'monthly',
+    generatePassword: true,
+    password: '',
   });
   const [error, setError] = useState('');
+  const [subscriptionPlans, setSubscriptionPlans] = useState([]);
+  const [loadingPlans, setLoadingPlans] = useState(false);
+  const [createdCredentials, setCreatedCredentials] = useState(null);
+  const [editingVendor, setEditingVendor] = useState(null);
+  const [showEditModal, setShowEditModal] = useState(false);
 
   useEffect(() => {
     fetchVendors();
+    fetchSubscriptionPlans();
   }, []);
+
+  const fetchSubscriptionPlans = async () => {
+    try {
+      setLoadingPlans(true);
+      const response = await api.get('/admin/subscriptions/plans');
+      setSubscriptionPlans(response.data);
+    } catch (error) {
+      console.error('Error fetching subscription plans:', error);
+    } finally {
+      setLoadingPlans(false);
+    }
+  };
 
   const fetchVendors = async () => {
     try {
@@ -59,13 +81,82 @@ const Vendors = () => {
     e.preventDefault();
     try {
       setError('');
-      await api.post('/vendors', formData);
-      setShowModal(false);
-      resetForm();
-      fetchVendors();
+      setCreatedCredentials(null);
+      
+      const payload = {
+        ...formData,
+        password: formData.generatePassword ? undefined : formData.password,
+      };
+      
+      const response = await api.post('/vendors', payload);
+      
+      // Show credentials modal
+      if (response.data.credentials) {
+        setCreatedCredentials(response.data.credentials);
+      } else {
+        setShowModal(false);
+        resetForm();
+        fetchVendors();
+      }
     } catch (error) {
       console.error('Error creating vendor:', error);
       setError(error.response?.data?.message || 'Failed to create vendor');
+    }
+  };
+
+  const handleCloseCredentials = () => {
+    setCreatedCredentials(null);
+    setShowModal(false);
+    resetForm();
+    fetchVendors();
+  };
+
+  const handleEdit = (vendor) => {
+    setEditingVendor(vendor);
+    setFormData({
+      businessName: vendor.businessName || '',
+      ownerName: vendor.ownerName || '',
+      email: vendor.email || '',
+      phone: vendor.phone || '',
+      address: {
+        street: vendor.address?.street || '',
+        city: vendor.address?.city || '',
+        state: vendor.address?.state || '',
+        zipCode: vendor.address?.zipCode || '',
+        country: vendor.address?.country || 'India',
+      },
+      gstNumber: vendor.gstNumber || '',
+      panNumber: vendor.panNumber || '',
+      subscriptionPlanId: vendor.subscription?.planId?._id || vendor.subscription?.planId || '',
+      billingCycle: 'monthly', // Default, can be updated if needed
+      generatePassword: true,
+      password: '',
+    });
+    setError('');
+    setShowEditModal(true);
+  };
+
+  const handleUpdate = async (e) => {
+    e.preventDefault();
+    try {
+      setError('');
+      
+      const payload = {
+        ...formData,
+        password: undefined, // Don't update password in edit
+        generatePassword: undefined,
+      };
+      
+      await api.put(`/vendors/${editingVendor._id}`, payload);
+      setShowEditModal(false);
+      setEditingVendor(null);
+      resetForm();
+      fetchVendors();
+      // Show success message
+      alert('Vendor updated successfully!');
+    } catch (error) {
+      console.error('Error updating vendor:', error);
+      setError(error.response?.data?.message || 'Failed to update vendor');
     }
   };
 
@@ -95,8 +186,13 @@ const Vendors = () => {
       },
       gstNumber: '',
       panNumber: '',
+      subscriptionPlanId: '',
+      billingCycle: 'monthly',
+      generatePassword: true,
+      password: '',
     });
     setError('');
+    setCreatedCredentials(null);
   };
 
   const formatDate = (date) => {
@@ -198,6 +294,9 @@ const Vendors = () => {
                     <td className="py-3 px-3 sm:px-4">
                       <div className="font-medium text-sm sm:text-base text-gray-800">{vendor.businessName}</div>
                       <div className="text-xs sm:text-sm text-gray-500">{vendor.ownerName}</div>
+                      {vendor.vendorId && (
+                        <div className="text-xs text-gray-400 mt-1">ID: {vendor.vendorId}</div>
+                      )}
                       <div className="text-xs text-gray-500 md:hidden mt-1">{vendor.email}</div>
                     </td>
                     <td className="py-3 px-3 sm:px-4 text-gray-700 text-sm hidden md:table-cell">{vendor.email}</td>
@@ -219,7 +318,12 @@ const Vendors = () => {
                     <td className="py-3 px-3 sm:px-4">
                       <div className="flex gap-1 sm:gap-2">
                         {hasPermission(SUPER_ADMIN_PERMISSIONS.CAN_EDIT_VENDORS) && (
-                          <Button size="small" variant="outline" className="text-xs px-2">
+                          <Button 
+                            size="small" 
+                            variant="outline" 
+                            className="text-xs px-2"
+                            onClick={() => handleEdit(vendor)}
+                          >
                             {t('common.edit')}
                           </Button>
                         )}
@@ -351,6 +455,76 @@ const Vendors = () => {
                   })}
                 />
               </div>
+              
+              {/* Subscription Plan Selection */}
+              <div className="border-t pt-4">
+                <h3 className="text-sm font-semibold text-gray-700 mb-3">Subscription Plan</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                      Select Plan
+                    </label>
+                    <select
+                      className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                      value={formData.subscriptionPlanId}
+                      onChange={(e) => setFormData({ ...formData, subscriptionPlanId: e.target.value })}
+                    >
+                      <option value="">Default Plan (Auto-select)</option>
+                      {subscriptionPlans.map((plan) => (
+                        <option key={plan._id} value={plan._id}>
+                          {plan.displayName || plan.name} - ₹{plan.price}/{plan.billingCycle || 'month'}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                      Billing Cycle
+                    </label>
+                    <select
+                      className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                      value={formData.billingCycle}
+                      onChange={(e) => setFormData({ ...formData, billingCycle: e.target.value })}
+                    >
+                      <option value="monthly">Monthly</option>
+                      <option value="quarterly">Quarterly</option>
+                      <option value="yearly">Yearly</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Password Options */}
+              <div className="border-t pt-4">
+                <h3 className="text-sm font-semibold text-gray-700 mb-3">Password Settings</h3>
+                <div className="space-y-3">
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={formData.generatePassword}
+                      onChange={(e) => setFormData({ 
+                        ...formData, 
+                        generatePassword: e.target.checked,
+                        password: e.target.checked ? '' : formData.password
+                      })}
+                      className="mr-2"
+                    />
+                    <span className="text-sm text-gray-700">Generate random password automatically</span>
+                  </label>
+                  {!formData.generatePassword && (
+                    <Input
+                      label="Set Password"
+                      type="password"
+                      name="password"
+                      value={formData.password}
+                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                      required={!formData.generatePassword}
+                      placeholder="Enter password (min 6 characters)"
+                    />
+                  )}
+                </div>
+              </div>
+
               <div className="flex gap-3 pt-4">
                 <Button type="submit" variant="primary" className="flex-1">
                   {t('common.create')}
@@ -365,6 +539,261 @@ const Vendors = () => {
                 </Button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Vendor Modal */}
+      {showEditModal && editingVendor && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-white rounded-lg max-w-2xl w-full p-4 sm:p-6 my-auto max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-bold text-gray-800 mb-4">{t('admin.editVendor')}</h2>
+            {error && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+                {error}
+              </div>
+            )}
+            <form onSubmit={handleUpdate} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Input
+                  label={t('admin.businessName')}
+                  name="businessName"
+                  value={formData.businessName}
+                  onChange={(e) => setFormData({ ...formData, businessName: e.target.value })}
+                  required
+                />
+                <Input
+                  label={t('admin.vendorName')}
+                  name="ownerName"
+                  value={formData.ownerName}
+                  onChange={(e) => setFormData({ ...formData, ownerName: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Input
+                  label={t('admin.contactEmail')}
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  required
+                />
+                <Input
+                  label={t('admin.contactPhone')}
+                  type="tel"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Input
+                  label="GST Number"
+                  name="gstNumber"
+                  value={formData.gstNumber}
+                  onChange={(e) => setFormData({ ...formData, gstNumber: e.target.value })}
+                />
+                <Input
+                  label="PAN Number"
+                  name="panNumber"
+                  value={formData.panNumber}
+                  onChange={(e) => setFormData({ ...formData, panNumber: e.target.value })}
+                />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Input
+                  label="Street"
+                  name="street"
+                  value={formData.address.street}
+                  onChange={(e) => setFormData({ 
+                    ...formData, 
+                    address: { ...formData.address, street: e.target.value } 
+                  })}
+                />
+                <Input
+                  label="City"
+                  name="city"
+                  value={formData.address.city}
+                  onChange={(e) => setFormData({ 
+                    ...formData, 
+                    address: { ...formData.address, city: e.target.value } 
+                  })}
+                />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <Input
+                  label="State"
+                  name="state"
+                  value={formData.address.state}
+                  onChange={(e) => setFormData({ 
+                    ...formData, 
+                    address: { ...formData.address, state: e.target.value } 
+                  })}
+                />
+                <Input
+                  label="ZIP Code"
+                  name="zipCode"
+                  value={formData.address.zipCode}
+                  onChange={(e) => setFormData({ 
+                    ...formData, 
+                    address: { ...formData.address, zipCode: e.target.value } 
+                  })}
+                />
+                <Input
+                  label="Country"
+                  name="country"
+                  value={formData.address.country}
+                  onChange={(e) => setFormData({ 
+                    ...formData, 
+                    address: { ...formData.address, country: e.target.value } 
+                  })}
+                />
+              </div>
+              
+              {/* Subscription Plan Selection */}
+              <div className="border-t pt-4">
+                <h3 className="text-sm font-semibold text-gray-700 mb-3">Subscription Plan</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                      Select Plan
+                    </label>
+                    <select
+                      className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                      value={formData.subscriptionPlanId}
+                      onChange={(e) => setFormData({ ...formData, subscriptionPlanId: e.target.value })}
+                    >
+                      <option value="">Keep Current Plan</option>
+                      {subscriptionPlans.map((plan) => (
+                        <option key={plan._id} value={plan._id}>
+                          {plan.displayName || plan.name} - ₹{plan.price}/{plan.billingCycle || 'month'}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                      Billing Cycle
+                    </label>
+                    <select
+                      className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                      value={formData.billingCycle}
+                      onChange={(e) => setFormData({ ...formData, billingCycle: e.target.value })}
+                    >
+                      <option value="monthly">Monthly</option>
+                      <option value="quarterly">Quarterly</option>
+                      <option value="yearly">Yearly</option>
+                    </select>
+                  </div>
+                </div>
+                {editingVendor.vendorId && (
+                  <div className="mt-2 text-xs text-gray-500">
+                    Current Vendor ID: <span className="font-mono">{editingVendor.vendorId}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <Button type="submit" variant="primary" className="flex-1">
+                  {t('common.save')}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => { 
+                    setShowEditModal(false); 
+                    setEditingVendor(null);
+                    resetForm(); 
+                  }}
+                  className="flex-1"
+                >
+                  {t('common.cancel')}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Credentials Display Modal */}
+      {createdCredentials && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-md w-full p-6">
+            <h2 className="text-xl font-bold text-gray-800 mb-4">Vendor Created Successfully!</h2>
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+              <p className="text-sm text-green-800 mb-2">
+                Please save these credentials. They will not be shown again.
+              </p>
+            </div>
+            <div className="space-y-3 mb-4">
+              <div className="bg-gray-50 p-3 rounded border">
+                <label className="text-xs font-semibold text-gray-600 block mb-1">Vendor ID</label>
+                <div className="flex items-center justify-between">
+                  <code className="text-sm font-mono text-gray-800">{createdCredentials.vendorId}</code>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(createdCredentials.vendorId);
+                      alert('Vendor ID copied!');
+                    }}
+                    className="text-xs text-blue-600 hover:text-blue-800"
+                  >
+                    Copy
+                  </button>
+                </div>
+              </div>
+              <div className="bg-gray-50 p-3 rounded border">
+                <label className="text-xs font-semibold text-gray-600 block mb-1">Email</label>
+                <div className="flex items-center justify-between">
+                  <code className="text-sm font-mono text-gray-800">{createdCredentials.email}</code>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(createdCredentials.email);
+                      alert('Email copied!');
+                    }}
+                    className="text-xs text-blue-600 hover:text-blue-800"
+                  >
+                    Copy
+                  </button>
+                </div>
+              </div>
+              <div className="bg-gray-50 p-3 rounded border">
+                <label className="text-xs font-semibold text-gray-600 block mb-1">Password</label>
+                <div className="flex items-center justify-between">
+                  <code className="text-sm font-mono text-gray-800">{createdCredentials.password}</code>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(createdCredentials.password);
+                      alert('Password copied!');
+                    }}
+                    className="text-xs text-blue-600 hover:text-blue-800"
+                  >
+                    Copy
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <Button
+                variant="primary"
+                onClick={handleCloseCredentials}
+                className="flex-1"
+              >
+                Done
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  const text = `Vendor ID: ${createdCredentials.vendorId}\nEmail: ${createdCredentials.email}\nPassword: ${createdCredentials.password}`;
+                  navigator.clipboard.writeText(text);
+                  alert('All credentials copied to clipboard!');
+                }}
+                className="flex-1"
+              >
+                Copy All
+              </Button>
+            </div>
           </div>
         </div>
       )}

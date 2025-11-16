@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import Card from '../../components/Card';
 import Button from '../../components/Button';
@@ -14,11 +14,29 @@ const Drivers = () => {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedDriver, setSelectedDriver] = useState(null);
   const [driverStats, setDriverStats] = useState(null);
+  const [attendanceDate, setAttendanceDate] = useState(() => new Date().toISOString().slice(0,10));
+  const [attendanceStatus, setAttendanceStatus] = useState('present');
+  const [salaryMonth, setSalaryMonth] = useState(() => {
+    const d = new Date(); 
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+  });
+  const [salarySummary, setSalarySummary] = useState(null);
+  const [savingAttendance, setSavingAttendance] = useState(false);
+  const [openAttendance, setOpenAttendance] = useState(false);
+  const attendanceSectionRef = useRef(null);
+  const [showAttendanceModal, setShowAttendanceModal] = useState(false);
+  const [attendanceMonth, setAttendanceMonth] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  });
+  const [attendanceRecords, setAttendanceRecords] = useState([]);
+  const [attendanceSummary, setAttendanceSummary] = useState({ present: 0, half: 0, absent: 0 });
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
     phone: '',
+    dailyWage: '',
     isActive: true,
   });
   const [error, setError] = useState('');
@@ -40,6 +58,16 @@ const Drivers = () => {
     }
   };
 
+  const fetchDriverAttendance = async (driverId, month) => {
+    try {
+      const res = await api.get(`/drivers/${driverId}/attendance?month=${month}`);
+      setAttendanceRecords(res.data.records || []);
+      setAttendanceSummary(res.data.summary || { present: 0, half: 0, absent: 0 });
+    } catch (e) {
+      console.error('Error fetching attendance:', e);
+    }
+  };
+
   const fetchDriverDetails = async (driverId) => {
     try {
       const [driverResponse, statsResponse] = await Promise.all([
@@ -49,6 +77,12 @@ const Drivers = () => {
       setSelectedDriver(driverResponse.data);
       setDriverStats(statsResponse.data);
       setShowDetailsModal(true);
+      try {
+        const m = new Date(attendanceDate).toISOString().slice(0,7);
+        const att = await api.get(`/drivers/${driverId}/attendance?month=${m}`);
+        const todayRec = att.data.records.find(r => (r.date || '').slice(0,10) === attendanceDate);
+        if (todayRec) setAttendanceStatus(todayRec.status);
+      } catch {}
     } catch (error) {
       console.error('Error fetching driver details:', error);
       alert(error.response?.data?.message || 'Failed to load driver details');
@@ -61,10 +95,16 @@ const Drivers = () => {
       setError('');
       if (selectedDriver) {
         // Update existing driver
-        await api.put(`/drivers/${selectedDriver._id}`, formData);
+        await api.put(`/drivers/${selectedDriver._id}`, {
+          ...formData,
+          dailyWage: parseFloat(formData.dailyWage) || 0,
+        });
       } else {
         // Create new driver
-        await api.post('/drivers', formData);
+        await api.post('/drivers', {
+          ...formData,
+          dailyWage: parseFloat(formData.dailyWage) || 0,
+        });
       }
       setShowModal(false);
       resetForm();
@@ -93,6 +133,7 @@ const Drivers = () => {
       email: driver.email,
       password: '', // Don't pre-fill password
       phone: driver.phone || '',
+      dailyWage: (driver.dailyWage ?? 0).toString(),
       isActive: driver.isActive,
     });
     setShowModal(true);
@@ -104,6 +145,7 @@ const Drivers = () => {
       email: '',
       password: '',
       phone: '',
+      dailyWage: '',
       isActive: true,
     });
     setSelectedDriver(null);
@@ -223,6 +265,34 @@ const Drivers = () => {
                 <Button
                   size="small"
                   variant="outline"
+                  onClick={async () => {
+                    setSelectedDriver(driver);
+                    setShowAttendanceModal(true);
+                    setOpenAttendance(false);
+                    // preload month attendance
+                    await fetchDriverAttendance(driver._id, attendanceMonth);
+                    // preload today's status for quick mark
+                    try {
+                      const todayMonth = new Date().toISOString().slice(0,7);
+                      const res = await api.get(`/drivers/${driver._id}/attendance?month=${todayMonth}`);
+                      const todayStr = new Date().toISOString().slice(0,10);
+                      const todayRec = (res.data.records || []).find(r => (r.date || '').slice(0,10) === todayStr);
+                      if (todayRec) {
+                        setAttendanceDate(todayStr);
+                        setAttendanceStatus(todayRec.status);
+                      } else {
+                        setAttendanceDate(todayStr);
+                        setAttendanceStatus('present');
+                      }
+                    } catch {}
+                  }}
+                  className="flex-1"
+                >
+                  Mark Attendance / Salary
+                </Button>
+                <Button
+                  size="small"
+                  variant="outline"
                   onClick={() => handleEdit(driver)}
                   className="flex-1"
                 >
@@ -282,6 +352,17 @@ const Drivers = () => {
                 name="phone"
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              />
+              <Input
+                label="Daily Wage (₹)"
+                type="number"
+                name="dailyWage"
+                value={formData.dailyWage}
+                onChange={(e) => setFormData({ ...formData, dailyWage: e.target.value })}
+                placeholder="0"
+                min="0"
+                step="0.01"
+                required
               />
               {!selectedDriver && (
                 <Input
@@ -449,6 +530,204 @@ const Drivers = () => {
               >
                 {t('common.close')}
               </Button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* Attendance & Salary Modal */}
+      {showAttendanceModal && selectedDriver && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-white rounded-lg max-w-3xl w-full p-4 sm:p-6 my-auto max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-800">{selectedDriver.name} • Attendance & Salary</h2>
+              <button
+                onClick={() => { setShowAttendanceModal(false); setSelectedDriver(null); setSalarySummary(null); }}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Card>
+                <h3 className="font-semibold text-gray-800 mb-3">Mark Attendance</h3>
+                <div className="space-y-3 text-sm">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Date</label>
+                      <Input
+                        type="date"
+                        value={attendanceDate}
+                        onChange={(e) => setAttendanceDate(e.target.value)}
+                        className="mb-0"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Status</label>
+                      <select
+                        value={attendanceStatus}
+                        onChange={(e) => setAttendanceStatus(e.target.value)}
+                        className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
+                      >
+                        <option value="present">Present</option>
+                        <option value="half">Half Day</option>
+                        <option value="absent">Absent</option>
+                      </select>
+                    </div>
+                  </div>
+                  <Button
+                    variant="primary"
+                    onClick={async () => {
+                      try {
+                        setSavingAttendance(true);
+                        await api.post(`/drivers/${selectedDriver._id}/attendance`, { date: attendanceDate, status: attendanceStatus });
+                        await fetchDriverAttendance(selectedDriver._id, attendanceMonth);
+                        alert('Attendance saved');
+                      } catch (e) {
+                        alert(e.response?.data?.message || 'Failed to save attendance');
+                      } finally {
+                        setSavingAttendance(false);
+                      }
+                    }}
+                    disabled={savingAttendance}
+                  >
+                    {savingAttendance ? t('common.loading') : 'Save Attendance'}
+                  </Button>
+                </div>
+
+                <div className="mt-4 space-y-2 text-sm">
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="p-2 bg-green-50 rounded text-center">
+                      <div className="text-xs text-gray-600">Present</div>
+                      <div className="font-semibold text-green-700">{attendanceSummary.present}</div>
+                    </div>
+                    <div className="p-2 bg-yellow-50 rounded text-center">
+                      <div className="text-xs text-gray-600">Half</div>
+                      <div className="font-semibold text-yellow-700">{attendanceSummary.half}</div>
+                    </div>
+                    <div className="p-2 bg-red-50 rounded text-center">
+                      <div className="text-xs text-gray-600">Absent</div>
+                      <div className="font-semibold text-red-700">{attendanceSummary.absent}</div>
+                    </div>
+                  </div>
+
+                  <div className="mt-3">
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Month</label>
+                    <Input
+                      type="month"
+                      value={attendanceMonth}
+                      onChange={async (e) => {
+                        const m = e.target.value;
+                        setAttendanceMonth(m);
+                        await fetchDriverAttendance(selectedDriver._id, m);
+                      }}
+                      className="mb-0"
+                    />
+                  </div>
+
+                  <div className="mt-3 max-h-56 overflow-y-auto border rounded">
+                    <table className="w-full text-xs">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="text-left p-2">Date</th>
+                          <th className="text-left p-2">Status</th>
+                          <th className="text-left p-2">Note</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {attendanceRecords.length === 0 ? (
+                          <tr>
+                            <td className="p-3 text-center text-gray-500" colSpan="3">No records</td>
+                          </tr>
+                        ) : (
+                          attendanceRecords.map(r => (
+                            <tr key={r._id} className="border-t">
+                              <td className="p-2">{(r.date || '').slice(0,10)}</td>
+                              <td className="p-2 capitalize">{r.status}</td>
+                              <td className="p-2">{r.note || '-'}</td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </Card>
+
+              <Card>
+                <h3 className="font-semibold text-gray-800 mb-3">Salary (per month)</h3>
+                <div className="space-y-3 text-sm">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Month</label>
+                      <Input
+                        type="month"
+                        value={salaryMonth}
+                        onChange={(e) => setSalaryMonth(e.target.value)}
+                        className="mb-0"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Daily Wage (₹)</label>
+                      <Input
+                        type="number"
+                        value={selectedDriver?.dailyWage ?? 0}
+                        onChange={(e) => setSelectedDriver({ ...selectedDriver, dailyWage: parseFloat(e.target.value) || 0 })}
+                        className="mb-0"
+                        min="0"
+                        step="0.01"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="primary"
+                      onClick={async () => {
+                        try {
+                          await api.put(`/drivers/${selectedDriver._id}`, { dailyWage: selectedDriver.dailyWage });
+                          const resp = await api.get(`/drivers/${selectedDriver._id}/salary?month=${salaryMonth}`);
+                          setSalarySummary(resp.data);
+                        } catch (e) {
+                          alert(e.response?.data?.message || 'Failed to calculate salary');
+                        }
+                      }}
+                      className="flex-1"
+                    >
+                      Calculate Salary
+                    </Button>
+                  </div>
+                  {salarySummary && (
+                    <div className="mt-3 space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span>Present Days</span>
+                        <span>{salarySummary.attendance.presentDays}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Half Days</span>
+                        <span>{salarySummary.attendance.halfDays}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Attendance Units</span>
+                        <span>{salarySummary.attendance.attendanceUnits}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Gross Pay</span>
+                        <span>₹{Number(salarySummary.grossPay).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                      </div>
+                      <div className="flex justify-between text-red-700">
+                        <span>Driver Expenses (excl. fuel)</span>
+                        <span>- ₹{Number(salarySummary.driverExpenses).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                      </div>
+                      <div className="flex justify-between font-semibold">
+                        <span>Net Pay</span>
+                        <span>₹{Number(salarySummary.netPay).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </Card>
             </div>
           </div>
         </div>

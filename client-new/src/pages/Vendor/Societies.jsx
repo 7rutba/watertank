@@ -258,7 +258,7 @@ const Societies = () => {
                     <p className="text-sm text-gray-600">{society.email}</p>
                   )}
                   <p className="text-sm text-primary mt-2 font-medium">
-                    ₹{society.deliveryRate}/L
+                    ₹{society.deliveryRate}/Tanker
                   </p>
                 </div>
                 <span
@@ -360,13 +360,13 @@ const Societies = () => {
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Input
-                  label={t('vendor.deliveryRate')}
+                  label={`${t('vendor.deliveryRate')} (per Tanker)`}
                   type="number"
                   step="0.01"
                   name="deliveryRate"
                   value={formData.deliveryRate}
                   onChange={(e) => setFormData({ ...formData, deliveryRate: e.target.value })}
-                  placeholder="5.00"
+                  placeholder="5000"
                   required
                 />
                 <div>
@@ -531,7 +531,7 @@ const Societies = () => {
                   )}
                   <div>
                     <span className="text-gray-600">{t('vendor.deliveryRate')}:</span>
-                    <span className="ml-2 font-medium">{formatCurrency(selectedSociety.deliveryRate)}/L</span>
+                    <span className="ml-2 font-medium">{formatCurrency(selectedSociety.deliveryRate)}/Tanker</span>
                   </div>
                   <div>
                     <span className="text-gray-600">{t('vendor.pricingType')}:</span>

@@ -5,7 +5,7 @@ import VendorLayout from './layouts/VendorLayout';
 import DriverLayout from './layouts/DriverLayout';
 import SocietyLayout from './layouts/SocietyLayout';
 import { Login } from './pages/Auth';
-import { Dashboard, Vendors, Analytics, Subscriptions, Settings, Support } from './pages/Admin';
+import { Dashboard, Vendors, Analytics, Subscriptions, Settings, Support, AdminExpenses } from './pages/Admin';
 import { 
   Dashboard as VendorDashboard, 
   Drivers as VendorDrivers, 
@@ -33,6 +33,7 @@ import {
   Invoices as SocietyInvoices,
   Payments as SocietyPayments,
 } from './pages/Society';
+import { Accountants as VendorAccountants } from './pages/Vendor';
 import './App.css';
 
 function App() {
@@ -58,6 +59,7 @@ function App() {
           <Route path="subscriptions" element={<Subscriptions />} />
           <Route path="settings" element={<Settings />} />
           <Route path="support" element={<Support />} />
+          <Route path="expenses" element={<AdminExpenses />} />
         </Route>
 
         {/* Vendor Routes */}
@@ -82,6 +84,7 @@ function App() {
           <Route path="payments" element={<VendorPayments />} />
           <Route path="reports" element={<VendorReports />} />
           <Route path="financials" element={<VendorFinancials />} />
+          <Route path="accountants" element={<VendorAccountants />} />
         </Route>
 
         {/* Driver Routes */}

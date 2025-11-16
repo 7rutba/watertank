@@ -84,13 +84,25 @@ const createCollection = asyncHandler(async (req, res) => {
     return res.status(404).json({ message: 'Vehicle not found' });
   }
   
+  // Coerce numeric values and normalize purchaseRate to per-liter
+  const qtyNum = Number(quantity) || 0;
+  const capacity = Number(vehicle.capacity) || 0;
+  let ratePerLiter = Number(purchaseRate);
+  if (!ratePerLiter || !isFinite(ratePerLiter)) {
+    // Fallback: compute per-liter from supplier per-tanker rate and vehicle capacity
+    ratePerLiter = capacity > 0 ? Number(supplier.purchaseRate) / capacity : undefined;
+  }
+  if (!ratePerLiter || !isFinite(ratePerLiter)) {
+    return res.status(400).json({ message: 'Invalid purchase rate or vehicle capacity' });
+  }
+
   const collection = await Collection.create({
     vendorId: req.vendorId,
     vehicleId,
     driverId: req.user._id,
     supplierId,
-    quantity,
-    purchaseRate: purchaseRate || supplier.purchaseRate,
+    quantity: qtyNum,
+    purchaseRate: ratePerLiter,
     location,
     meterPhoto: req.file ? req.file.path : null,
     notes,

@@ -41,6 +41,7 @@ router.use('/admin/analytics', analyticsRoutes);
 router.use('/vendor', require('./vendorDashboardRoutes'));
 router.use('/driver', require('./driverDashboardRoutes'));
 router.use('/drivers', require('./driverRoutes'));
+router.use('/accountants', require('./accountantRoutes'));
 
 module.exports = router;
 

@@ -23,10 +23,18 @@ const Login = () => {
     const token = localStorage.getItem('token');
     if (token) {
       const userRole = localStorage.getItem('userRole');
+      // Route based on stored role to avoid redirect loops
       if (userRole === 'super_admin') {
         navigate('/admin/dashboard');
+      } else if (userRole === 'vendor' || userRole === 'accountant') {
+        navigate('/vendor/dashboard');
+      } else if (userRole === 'driver') {
+        navigate('/driver/dashboard');
+      } else if (userRole === 'society_admin') {
+        navigate('/society/dashboard');
       } else {
-        navigate('/dashboard');
+        // Fallback to login if role is unknown
+        navigate('/login');
       }
     }
   }, [navigate]);

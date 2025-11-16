@@ -25,6 +25,7 @@ const {
   deleteSetting,
   initializeDefaultSettings,
 } = require('../controllers/settingsController');
+const { assignExpenseCharge, getAllExpensesAdmin, getExpenseAdmin } = require('../controllers/expenseController');
 const {
   getTickets,
   getTicket,
@@ -64,6 +65,11 @@ router.post('/settings', upsertSetting);
 router.put('/settings', updateMultipleSettings);
 router.put('/settings/:key', updateSetting);
 router.delete('/settings/:key', deleteSetting);
+
+// Expense assignment (Admin decides who bears driver expenses)
+router.get('/expenses', getAllExpensesAdmin);
+router.get('/expenses/:id', getExpenseAdmin);
+router.put('/expenses/:id/assign', assignExpenseCharge);
 
 // Support Ticket routes
 router.get('/support/tickets', getTickets);

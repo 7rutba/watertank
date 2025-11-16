@@ -81,6 +81,12 @@ const VendorLayout = () => {
       permission: 'canGenerateReports',
     },
     { 
+      path: '/vendor/accountants', 
+      label: 'Accountants', 
+      icon: '👩‍💼',
+      permission: 'canManageAccountants',
+    },
+    { 
       path: '/vendor/financials', 
       label: t('vendor.financials'), 
       icon: '💵',

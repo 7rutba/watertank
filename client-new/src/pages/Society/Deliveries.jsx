@@ -106,6 +106,14 @@ const Deliveries = () => {
     return `₹${(amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
+  const formatTankerCount = (qty, vehicle) => {
+    const cap = Number(vehicle?.capacity) || 0;
+    const q = Number(qty) || 0;
+    if (!cap || !q) return '-';
+    const count = q / cap;
+    return Number.isInteger(count) ? `${count} Tanker${count === 1 ? '' : 's'}` : `${count.toFixed(2)} Tankers`;
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -181,9 +189,13 @@ const Deliveries = () => {
           <p className="text-2xl font-bold text-gray-800 mt-1">{filteredDeliveries.length}</p>
         </div>
         <div className="bg-white rounded-lg shadow-md p-4">
-          <p className="text-sm text-gray-600">{t('society.totalQuantity')}</p>
+          <p className="text-sm text-gray-600">Total Tankers</p>
           <p className="text-2xl font-bold text-gray-800 mt-1">
-            {filteredDeliveries.reduce((sum, d) => sum + (d.quantity || 0), 0)}L
+            {filteredDeliveries.reduce((sum, d) => {
+              const cap = Number(d?.vehicleId?.capacity) || 0;
+              const q = Number(d?.quantity) || 0;
+              return sum + (cap ? q / cap : 0);
+            }, 0).toFixed(2)}
           </p>
         </div>
         <div className="bg-white rounded-lg shadow-md p-4">
@@ -209,7 +221,7 @@ const Deliveries = () => {
                     {t('driver.date')}
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t('driver.quantity')}
+                    Tankers
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     {t('driver.vehicle')}
@@ -238,7 +250,7 @@ const Deliveries = () => {
                       </div>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                      {delivery.quantity}L
+                      {formatTankerCount(delivery.quantity, delivery?.vehicleId)}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
                       {delivery.vehicleId?.vehicleNumber || 'N/A'}

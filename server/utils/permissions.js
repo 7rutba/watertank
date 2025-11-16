@@ -36,6 +36,7 @@ const getPermissionsByRole = (role) => {
       canGenerateReports: true,
       canManageInvoices: true,
       canViewFinancials: true,
+      canManageAccountants: true,
     },
     accountant: {
       canManageTenants: false,

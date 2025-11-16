@@ -10,4 +10,5 @@ export { default as Invoices } from './Invoices.jsx';
 export { default as Payments } from './Payments.jsx';
 export { default as Reports } from './Reports.jsx';
 export { default as Financials } from './Financials.jsx';
+export { default as Accountants } from './Accountants.jsx';
 

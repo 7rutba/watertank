@@ -1,6 +1,12 @@
 const mongoose = require('mongoose');
 
 const vendorSchema = new mongoose.Schema({
+  vendorId: {
+    type: String,
+    unique: true,
+    trim: true,
+    uppercase: true,
+  },
   businessName: {
     type: String,
     required: true,
@@ -45,8 +51,11 @@ const vendorSchema = new mongoose.Schema({
   subscription: {
     plan: {
       type: String,
-      enum: ['basic', 'premium', 'enterprise'],
       default: 'basic',
+    },
+    planId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'SubscriptionPlan',
     },
     startDate: Date,
     endDate: Date,

@@ -10,6 +10,22 @@ const Payments = () => {
   const [loading, setLoading] = useState(true);
   const [payments, setPayments] = useState([]);
   const [invoices, setInvoices] = useState([]);
+  const [suppliers, setSuppliers] = useState([]);
+  const [selectedSupplier, setSelectedSupplier] = useState('');
+  const [supplierOutstanding, setSupplierOutstanding] = useState(null);
+  const [supplierStats, setSupplierStats] = useState(null);
+  const [supplierMonth, setSupplierMonth] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+  });
+  const [societies, setSocieties] = useState([]);
+  const [selectedSociety, setSelectedSociety] = useState('');
+  const [societyPeriod, setSocietyPeriod] = useState(() => {
+    const d = new Date();
+    const start = new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0,10);
+    const end = new Date(d.getFullYear(), d.getMonth()+1, 0).toISOString().slice(0,10);
+    return { start, end };
+  });
   const [filters, setFilters] = useState({
     type: '',
     relatedTo: '',
@@ -33,6 +49,8 @@ const Payments = () => {
   useEffect(() => {
     fetchPayments();
     fetchInvoices();
+    fetchSuppliers();
+    fetchSocieties();
   }, []);
 
   useEffect(() => {
@@ -63,6 +81,42 @@ const Payments = () => {
       setInvoices(response.data);
     } catch (error) {
       console.error('Error fetching invoices:', error);
+    }
+  };
+
+  const fetchSuppliers = async () => {
+    try {
+      const res = await api.get('/suppliers');
+      setSuppliers(res.data || []);
+    } catch (e) {
+      console.error('Error fetching suppliers:', e);
+    }
+  };
+
+  const fetchSocieties = async () => {
+    try {
+      const res = await api.get('/societies');
+      setSocieties(res.data || []);
+    } catch (e) {
+      console.error('Error fetching societies:', e);
+    }
+  };
+
+  const refreshSupplierData = async (supplierId) => {
+    if (!supplierId) {
+      setSupplierOutstanding(null);
+      setSupplierStats(null);
+      return;
+    }
+    try {
+      const [outRes, statRes] = await Promise.all([
+        api.get(`/suppliers/${supplierId}/outstanding`),
+        api.get(`/suppliers/${supplierId}/stats`),
+      ]);
+      setSupplierOutstanding(outRes.data);
+      setSupplierStats(statRes.data);
+    } catch (e) {
+      console.error('Error fetching supplier data:', e);
     }
   };
 
@@ -143,6 +197,320 @@ const Payments = () => {
         <Button onClick={() => setShowModal(true)} variant="primary" className="w-full sm:w-auto">
           {t('vendor.recordPayment')}
         </Button>
+      </div>
+
+      {/* Accountant Workflows */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+        {/* Supplier Payment Process */}
+        <Card>
+          <h2 className="text-lg font-semibold mb-3">Supplier Payment Process</h2>
+          <div className="space-y-3 text-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Supplier</label>
+                <select
+                  value={selectedSupplier}
+                  onChange={async (e) => { setSelectedSupplier(e.target.value); await refreshSupplierData(e.target.value); }}
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                >
+                  <option value="">Select supplier...</option>
+                  {suppliers.map(s => (
+                    <option key={s._id} value={s._id}>{s.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Month</label>
+                <Input
+                  type="month"
+                  value={supplierMonth}
+                  onChange={(e) => setSupplierMonth(e.target.value)}
+                  className="mb-0"
+                />
+              </div>
+              <div className="flex items-end">
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => refreshSupplierData(selectedSupplier)}
+                  disabled={!selectedSupplier}
+                >
+                  Refresh
+                </Button>
+              </div>
+            </div>
+
+            {supplierStats && supplierOutstanding && (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <Card>
+                  <div className="text-xs text-gray-600">This Month Quantity</div>
+                  <div className="text-xl font-semibold">{supplierStats.monthly.quantity} L</div>
+                </Card>
+                <Card>
+                  <div className="text-xs text-gray-600">This Month Amount</div>
+                  <div className="text-xl font-semibold">₹{supplierStats.monthly.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
+                </Card>
+                <Card>
+                  <div className="text-xs text-gray-600">Prev. Outstanding</div>
+                  <div className="text-xl font-semibold">₹{Math.max(0, (supplierOutstanding.outstanding - supplierStats.monthly.amount)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
+                </Card>
+              </div>
+            )}
+
+            {/* Monthly Payment (Fixed Suppliers) */}
+            <Card>
+              <h3 className="font-medium mb-2">Monthly Payment (Fixed Suppliers)</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Amount</label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={supplierStats && supplierOutstanding ? (supplierStats.monthly.amount + Math.max(0, (supplierOutstanding.outstanding - supplierStats.monthly.amount))) : ''}
+                    onChange={() => {}}
+                    disabled
+                    className="mb-0"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Month total + previous outstanding</p>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Method</label>
+                  <select
+                    value={formData.paymentMethod}
+                    onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })}
+                    className="block w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                  >
+                    <option value="cash">{t('vendor.cash')}</option>
+                    <option value="bank_transfer">{t('vendor.bankTransfer')}</option>
+                    <option value="upi">{t('vendor.upi')}</option>
+                    <option value="cheque">{t('vendor.cheque')}</option>
+                    <option value="neft">{t('vendor.neft')}</option>
+                    <option value="rtgs">{t('vendor.rtgs')}</option>
+                  </select>
+                </div>
+                <div className="flex items-end">
+                  <Button
+                    variant="primary"
+                    className="w-full"
+                    disabled={!selectedSupplier || !supplierStats || !supplierOutstanding}
+                    onClick={async () => {
+                      try {
+                        const amount = (supplierStats.monthly.amount + Math.max(0, (supplierOutstanding.outstanding - supplierStats.monthly.amount)));
+                        await api.post('/payments', {
+                          type: 'purchase',
+                          relatedTo: 'supplier',
+                          relatedId: selectedSupplier,
+                          amount,
+                          paymentMethod: formData.paymentMethod,
+                          paymentDate: new Date().toISOString().split('T')[0],
+                          referenceNumber: `MONTH-${supplierMonth}`,
+                          notes: `Monthly supplier payment for ${supplierMonth}`,
+                        });
+                        await refreshSupplierData(selectedSupplier);
+                        fetchPayments();
+                        alert('Monthly supplier payment recorded');
+                      } catch (e) {
+                        alert(e.response?.data?.message || 'Failed to record monthly payment');
+                      }
+                    }}
+                  >
+                    Process Monthly Payment
+                  </Button>
+                </div>
+              </div>
+            </Card>
+
+            {/* Mid-Month Payment (On-Demand) */}
+            {supplierOutstanding && (
+              <Card>
+                <h3 className="font-medium mb-2">Mid-Month / On-Demand</h3>
+                <div className="space-y-2 max-h-48 overflow-y-auto border rounded p-2">
+                  {supplierOutstanding.unpaidCollections.length === 0 ? (
+                    <div className="text-xs text-gray-500">No unbilled collections.</div>
+                  ) : (
+                    supplierOutstanding.unpaidCollections.slice(0, 20).map(c => (
+                      <div key={c._id} className="flex justify-between text-xs border-b py-1">
+                        <span>{new Date(c.createdAt).toLocaleDateString()} • {c.quantity}L</span>
+                        <span>₹{Number(c.totalAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                      </div>
+                    ))
+                  )}
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Partial Amount</label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={formData.amount}
+                      onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                      placeholder="0.00"
+                      className="mb-0"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Method</label>
+                    <select
+                      value={formData.paymentMethod}
+                      onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })}
+                      className="block w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                    >
+                      <option value="cash">{t('vendor.cash')}</option>
+                      <option value="bank_transfer">{t('vendor.bankTransfer')}</option>
+                      <option value="upi">{t('vendor.upi')}</option>
+                      <option value="cheque">{t('vendor.cheque')}</option>
+                      <option value="neft">{t('vendor.neft')}</option>
+                      <option value="rtgs">{t('vendor.rtgs')}</option>
+                    </select>
+                  </div>
+                  <div className="flex items-end">
+                    <Button
+                      variant="primary"
+                      className="w-full"
+                      disabled={!selectedSupplier || !formData.amount}
+                      onClick={async () => {
+                        try {
+                          await api.post('/payments', {
+                            type: 'purchase',
+                            relatedTo: 'supplier',
+                            relatedId: selectedSupplier,
+                            amount: parseFloat(formData.amount),
+                            paymentMethod: formData.paymentMethod,
+                            paymentDate: new Date().toISOString().split('T')[0],
+                            referenceNumber: `PARTIAL-${supplierMonth}`,
+                            notes: `Partial supplier payment ${supplierMonth}`,
+                          });
+                          setFormData({ ...formData, amount: '' });
+                          await refreshSupplierData(selectedSupplier);
+                          fetchPayments();
+                          alert('Partial supplier payment recorded');
+                        } catch (e) {
+                          alert(e.response?.data?.message || 'Failed to record partial payment');
+                        }
+                      }}
+                    >
+                      Pay Partial
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            )}
+
+            {/* Temporary Supplier (Per-Collection) */}
+            {supplierOutstanding && supplierOutstanding.unpaidCollections.length > 0 && (
+              <Card>
+                <h3 className="font-medium mb-2">Temporary Supplier (Per-Collection)</h3>
+                <div className="space-y-2 max-h-48 overflow-y-auto border rounded p-2">
+                  {supplierOutstanding.unpaidCollections.slice(0, 20).map(c => (
+                    <div key={c._id} className="flex items-center justify-between text-xs border-b py-1">
+                      <div>
+                        <div>{new Date(c.createdAt).toLocaleDateString()} • {c.quantity}L @ ₹{Number(c.purchaseRate).toFixed(2)}/L</div>
+                        <div className="text-gray-500">Total: ₹{Number(c.totalAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
+                      </div>
+                      <Button
+                        size="small"
+                        variant="outline"
+                        onClick={async () => {
+                          try {
+                            await api.post('/payments', {
+                              type: 'purchase',
+                              relatedTo: 'supplier',
+                              relatedId: selectedSupplier,
+                              collectionId: c._id,
+                              amount: Number(c.totalAmount),
+                              paymentMethod: formData.paymentMethod,
+                              paymentDate: new Date().toISOString().split('T')[0],
+                              referenceNumber: `COL-${c._id}`,
+                              notes: 'Per-collection payout',
+                            });
+                            await refreshSupplierData(selectedSupplier);
+                            fetchPayments();
+                            alert('Per-collection supplier payment recorded');
+                          } catch (e) {
+                            alert(e.response?.data?.message || 'Failed to record per-collection payment');
+                          }
+                        }}
+                      >
+                        Pay Now
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            )}
+          </div>
+        </Card>
+
+        {/* Society Invoicing & Payments */}
+        <Card>
+          <h2 className="text-lg font-semibold mb-3">Society Payments & Invoicing</h2>
+          <div className="space-y-3 text-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Society</label>
+                <select
+                  value={selectedSociety}
+                  onChange={(e) => setSelectedSociety(e.target.value)}
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                >
+                  <option value="">Select society...</option>
+                  {societies.map(s => (
+                    <option key={s._id} value={s._id}>{s.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Period Start</label>
+                <Input
+                  type="date"
+                  value={societyPeriod.start}
+                  onChange={(e) => setSocietyPeriod({ ...societyPeriod, start: e.target.value })}
+                  className="mb-0"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Period End</label>
+                <Input
+                  type="date"
+                  value={societyPeriod.end}
+                  onChange={(e) => setSocietyPeriod({ ...societyPeriod, end: e.target.value })}
+                  className="mb-0"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <Button
+                variant="primary"
+                onClick={async () => {
+                  try {
+                    if (!selectedSociety) {
+                      alert('Select a society');
+                      return;
+                    }
+                    const res = await api.post('/invoices/generate-monthly', {
+                      relatedId: selectedSociety,
+                      relatedTo: 'society',
+                      startDate: societyPeriod.start,
+                      endDate: societyPeriod.end,
+                    });
+                    fetchInvoices();
+                    alert(`Invoice drafted: ${res.data.invoiceNumber || res.data._id}`);
+                  } catch (e) {
+                    alert(e.response?.data?.message || 'Failed to generate invoice');
+                  }
+                }}
+              >
+                Generate Monthly Invoice
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setShowModal(true)}
+              >
+                Record Society Payment
+              </Button>
+            </div>
+          </div>
+        </Card>
       </div>
 
       {/* Filters */}

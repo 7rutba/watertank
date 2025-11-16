@@ -97,6 +97,21 @@ const Collections = () => {
     });
   };
 
+  const formatTankerCount = (qty, vehicle) => {
+    const cap = Number(vehicle?.capacity) || 0;
+    const q = Number(qty) || 0;
+    if (!cap || !q) return '-';
+    const count = q / cap;
+    return Number.isInteger(count) ? `${count} Tanker${count === 1 ? '' : 's'}` : `${count.toFixed(2)} Tankers`;
+  };
+
+  const perTankerRate = (perLiter, vehicle) => {
+    const cap = Number(vehicle?.capacity) || 0;
+    const rate = Number(perLiter) || 0;
+    if (!cap || !rate) return 0;
+    return cap * rate;
+  };
+
   const openDetailsModal = async (collection) => {
     try {
       const response = await api.get(`/collections/${collection._id}`);
@@ -213,9 +228,13 @@ const Collections = () => {
           <div className="text-2xl font-bold text-gray-800 mt-1">{collections.length}</div>
         </Card>
         <Card>
-          <div className="text-sm text-gray-600">{t('vendor.totalQuantity')}</div>
+          <div className="text-sm text-gray-600">Total Tankers</div>
           <div className="text-2xl font-bold text-primary mt-1">
-            {collections.reduce((sum, c) => sum + (c.quantity || 0), 0)}L
+            {collections.reduce((sum, c) => {
+              const cap = Number(c?.vehicleId?.capacity) || 0;
+              const q = Number(c?.quantity) || 0;
+              return sum + (cap ? q / cap : 0);
+            }, 0).toFixed(2)}
           </div>
         </Card>
         <Card>
@@ -236,8 +255,8 @@ const Collections = () => {
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('vendor.driver')}</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('vendor.supplierName')}</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('vendor.vehicle')}</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">{t('vendor.quantity')}</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">{t('vendor.rate')}</th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Tankers</th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Rate (/Tanker)</th>
                 <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">{t('vendor.amount')}</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('common.status')}</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('common.actions')}</th>
@@ -266,10 +285,10 @@ const Collections = () => {
                       {collection.vehicleId?.vehicleNumber || 'N/A'}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-right">
-                      {collection.quantity}L
+                      {formatTankerCount(collection.quantity, collection?.vehicleId)}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-right">
-                      {formatCurrency(collection.purchaseRate || 0)}/L
+                      {formatCurrency(perTankerRate(collection.purchaseRate, collection?.vehicleId))}/Tanker
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 text-right">
                       {formatCurrency(collection.totalAmount || 0)}
@@ -343,12 +362,12 @@ const Collections = () => {
                   <span className="ml-2 font-medium">{selectedCollection.supplierId?.name || 'N/A'}</span>
                 </div>
                 <div>
-                  <span className="text-gray-600">{t('vendor.quantity')}:</span>
-                  <span className="ml-2 font-medium">{selectedCollection.quantity}L</span>
+                  <span className="text-gray-600">Tankers:</span>
+                  <span className="ml-2 font-medium">{formatTankerCount(selectedCollection.quantity, selectedCollection?.vehicleId)}</span>
                 </div>
                 <div>
-                  <span className="text-gray-600">{t('vendor.rate')}:</span>
-                  <span className="ml-2 font-medium">{formatCurrency(selectedCollection.purchaseRate || 0)}/L</span>
+                  <span className="text-gray-600">Rate:</span>
+                  <span className="ml-2 font-medium">{formatCurrency(perTankerRate(selectedCollection.purchaseRate, selectedCollection?.vehicleId))}/Tanker</span>
                 </div>
                 <div>
                   <span className="text-gray-600">{t('vendor.amount')}:</span>

@@ -252,7 +252,7 @@ const Suppliers = () => {
                     <p className="text-sm text-gray-600">{supplier.email}</p>
                   )}
                   <p className="text-sm text-primary mt-2 font-medium">
-                    ₹{supplier.purchaseRate}/L
+                    ₹{supplier.purchaseRate}/Tanker
                   </p>
                 </div>
                 <span
@@ -353,13 +353,13 @@ const Suppliers = () => {
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Input
-                  label={t('vendor.purchaseRate')}
+                  label={`${t('vendor.purchaseRate')} (per Tanker)`}
                   type="number"
                   step="0.01"
                   name="purchaseRate"
                   value={formData.purchaseRate}
                   onChange={(e) => setFormData({ ...formData, purchaseRate: e.target.value })}
-                  placeholder="2.50"
+                  placeholder="2500"
                   required
                 />
                 <div>
@@ -508,7 +508,7 @@ const Suppliers = () => {
                   )}
                   <div>
                     <span className="text-gray-600">{t('vendor.purchaseRate')}:</span>
-                    <span className="ml-2 font-medium">{formatCurrency(selectedSupplier.purchaseRate)}/L</span>
+                    <span className="ml-2 font-medium">{formatCurrency(selectedSupplier.purchaseRate)}/Tanker</span>
                   </div>
                   <div>
                     <span className="text-gray-600">{t('vendor.paymentTerms')}:</span>

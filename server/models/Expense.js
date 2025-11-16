@@ -44,6 +44,12 @@ const expenseSchema = new mongoose.Schema({
     enum: ['pending', 'approved', 'rejected', 'paid'],
     default: 'pending',
   },
+  // Indicates who bears this expense. Admin can re-assign. Fuel should remain 'vendor' by policy.
+  chargedTo: {
+    type: String,
+    enum: ['vendor', 'driver'],
+    default: 'vendor',
+  },
   approvedBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',

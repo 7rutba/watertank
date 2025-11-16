@@ -55,9 +55,11 @@ const collectionSchema = new mongoose.Schema({
   timestamps: true,
 });
 
-// Calculate total amount before saving
-collectionSchema.pre('save', function(next) {
-  this.totalAmount = this.quantity * this.purchaseRate;
+// Calculate total amount before validation so required validator passes
+collectionSchema.pre('validate', function(next) {
+  const qty = Number(this.quantity) || 0;
+  const rate = Number(this.purchaseRate) || 0;
+  this.totalAmount = qty * rate;
   next();
 });
 

@@ -100,6 +100,21 @@ const Deliveries = () => {
     });
   };
 
+  const formatTankerCount = (qty, vehicle) => {
+    const cap = Number(vehicle?.capacity) || 0;
+    const q = Number(qty) || 0;
+    if (!cap || !q) return '-';
+    const count = q / cap;
+    return Number.isInteger(count) ? `${count} Tanker${count === 1 ? '' : 's'}` : `${count.toFixed(2)} Tankers`;
+  };
+
+  const perTankerRate = (perLiter, vehicle) => {
+    const cap = Number(vehicle?.capacity) || 0;
+    const rate = Number(perLiter) || 0;
+    if (!cap || !rate) return 0;
+    return cap * rate;
+  };
+
   const openDetailsModal = async (delivery) => {
     try {
       const response = await api.get(`/deliveries/${delivery._id}`);
@@ -230,9 +245,13 @@ const Deliveries = () => {
           <div className="text-2xl font-bold text-gray-800 mt-1">{deliveries.length}</div>
         </Card>
         <Card>
-          <div className="text-sm text-gray-600">{t('vendor.totalQuantity')}</div>
+          <div className="text-sm text-gray-600">Total Tankers</div>
           <div className="text-2xl font-bold text-primary mt-1">
-            {deliveries.reduce((sum, d) => sum + (d.quantity || 0), 0)}L
+            {deliveries.reduce((sum, d) => {
+              const cap = Number(d?.vehicleId?.capacity) || 0;
+              const q = Number(d?.quantity) || 0;
+              return sum + (cap ? q / cap : 0);
+            }, 0).toFixed(2)}
           </div>
         </Card>
         <Card>
@@ -253,8 +272,8 @@ const Deliveries = () => {
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('vendor.driver')}</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('vendor.societyName')}</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('vendor.vehicle')}</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">{t('vendor.quantity')}</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">{t('vendor.rate')}</th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Tankers</th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Rate (/Tanker)</th>
                 <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">{t('vendor.amount')}</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('common.status')}</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('common.actions')}</th>
@@ -283,10 +302,10 @@ const Deliveries = () => {
                       {delivery.vehicleId?.vehicleNumber || 'N/A'}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-right">
-                      {delivery.quantity}L
+                      {formatTankerCount(delivery.quantity, delivery?.vehicleId)}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-right">
-                      {formatCurrency(delivery.deliveryRate || 0)}/L
+                      {formatCurrency(perTankerRate(delivery.deliveryRate || 0, delivery?.vehicleId))}/Tanker
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 text-right">
                       {formatCurrency(delivery.totalAmount || 0)}
@@ -367,12 +386,12 @@ const Deliveries = () => {
                   <span className="ml-2 font-medium">{selectedDelivery.societyId?.name || 'N/A'}</span>
                 </div>
                 <div>
-                  <span className="text-gray-600">{t('vendor.quantity')}:</span>
-                  <span className="ml-2 font-medium">{selectedDelivery.quantity}L</span>
+                  <span className="text-gray-600">Tankers:</span>
+                  <span className="ml-2 font-medium">{formatTankerCount(selectedDelivery.quantity, selectedDelivery?.vehicleId)}</span>
                 </div>
                 <div>
-                  <span className="text-gray-600">{t('vendor.rate')}:</span>
-                  <span className="ml-2 font-medium">{formatCurrency(selectedDelivery.deliveryRate || 0)}/L</span>
+                  <span className="text-gray-600">Rate:</span>
+                  <span className="ml-2 font-medium">{formatCurrency(perTankerRate(selectedDelivery.deliveryRate || 0, selectedDelivery?.vehicleId))}/Tanker</span>
                 </div>
                 <div>
                   <span className="text-gray-600">{t('vendor.amount')}:</span>

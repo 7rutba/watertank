@@ -10,6 +10,7 @@ const LogCollection = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { location, error: locationError, loading: locationLoading, getCurrentLocation, clearLocation } = useGeolocation();
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
 
   const [loading, setLoading] = useState(false);
   const [vehicles, setVehicles] = useState([]);
@@ -21,6 +22,8 @@ const LogCollection = () => {
     purchaseRate: '',
     notes: '',
   });
+  const [quantityMode, setQuantityMode] = useState('tanker'); // default to tanker
+  const [tankerCount, setTankerCount] = useState('1');
   const [meterPhoto, setMeterPhoto] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
   const [errors, setErrors] = useState({});
@@ -34,22 +37,45 @@ const LogCollection = () => {
   }, []);
 
   useEffect(() => {
-    // Auto-fill purchase rate when supplier is selected
-    if (formData.supplierId) {
-      const supplier = suppliers.find(s => s._id === formData.supplierId);
-      if (supplier && supplier.purchaseRate) {
-        setFormData(prev => ({
-          ...prev,
-          purchaseRate: supplier.purchaseRate.toString(),
-        }));
-      }
-    }
-  }, [formData.supplierId, suppliers]);
+    // Auto-fill per-liter purchase rate from supplier's per-tanker rate using selected vehicle capacity
+    if (!formData.supplierId) return;
+    const supplier = suppliers.find(s => s._id === formData.supplierId);
+    if (!supplier || !supplier.purchaseRate) return;
 
+    const selectedVehicle = vehicles.find(v => v._id === formData.vehicleId);
+    const capacity = selectedVehicle ? Number(selectedVehicle.capacity) || 0 : 0;
+
+    if (capacity > 0) {
+      const perLiter = Number(supplier.purchaseRate) / capacity;
+      const perLiterStr = perLiter ? perLiter.toFixed(4) : '';
+      setFormData(prev => ({
+        ...prev,
+        purchaseRate: perLiterStr,
+      }));
+    }
+  }, [formData.supplierId, suppliers, formData.vehicleId, vehicles]);
+
+  // Auto-calculate liters from tanker loads based on vehicle capacity
+  useEffect(() => {
+    if (quantityMode !== 'tanker') return;
+    const selectedVehicle = vehicles.find(v => v._id === formData.vehicleId);
+    const capacity = selectedVehicle ? Number(selectedVehicle.capacity) || 0 : 0;
+    const loads = Number(tankerCount) || 0;
+    const liters = capacity * loads;
+    setFormData(prev => ({
+      ...prev,
+      quantity: liters ? liters.toString() : '',
+    }));
+  }, [quantityMode, tankerCount, formData.vehicleId, vehicles]);
   const fetchVehicles = async () => {
     try {
       const response = await api.get('/vehicles');
-      setVehicles(response.data || []);
+      const list = response.data || [];
+      setVehicles(list);
+      const assigned = list.find(v => v.driverId?._id === user?._id);
+      if (assigned) {
+        setFormData(prev => ({ ...prev, vehicleId: assigned._id }));
+      }
     } catch (error) {
       console.error('Error fetching vehicles:', error);
     }
@@ -140,17 +166,14 @@ const LogCollection = () => {
     if (!formData.supplierId) {
       newErrors.supplierId = t('driver.selectSupplier') + ' is required';
     }
+    if (!tankerCount || Number(tankerCount) <= 0) {
+      newErrors.tankerCount = 'Number of tankers must be greater than 0';
+    }
     if (!formData.quantity || parseFloat(formData.quantity) <= 0) {
       newErrors.quantity = 'Quantity must be greater than 0';
     }
-    if (!formData.purchaseRate || parseFloat(formData.purchaseRate) <= 0) {
-      newErrors.purchaseRate = 'Purchase rate must be greater than 0';
-    }
     if (!location) {
       newErrors.location = 'GPS location is required. Please capture location.';
-    }
-    if (!meterPhoto) {
-      newErrors.meterPhoto = 'Meter photo is required';
     }
 
     setErrors(newErrors);
@@ -276,47 +299,50 @@ const LogCollection = () => {
           )}
         </div>
 
-        {/* Quantity */}
+        {/* Quantity - Tanker Loads only */}
         <div>
-          <Input
-            label={`${t('driver.quantityLiters')} *`}
-            type="number"
-            name="quantity"
-            value={formData.quantity}
-            onChange={handleChange}
-            placeholder="0"
-            min="0"
-            step="0.01"
-            required
-            error={errors.quantity}
-          />
-        </div>
-
-        {/* Purchase Rate */}
-        <div>
-          <Input
-            label={`${t('driver.ratePerLiter')} *`}
-            type="number"
-            name="purchaseRate"
-            value={formData.purchaseRate}
-            onChange={handleChange}
-            placeholder="0.00"
-            min="0"
-            step="0.01"
-            required
-            error={errors.purchaseRate}
-          />
-        </div>
-
-        {/* Total Amount (Read-only) */}
-        <div className="bg-gray-50 p-4 rounded-lg">
-          <div className="flex justify-between items-center">
-            <span className="text-lg font-semibold text-gray-700">{t('driver.totalAmount')}:</span>
-            <span className="text-2xl font-bold text-primary">
-              ₹{calculateTotal().toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </span>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <Input
+                label={`No. of Tankers *`}
+                type="number"
+                name="tankerCount"
+                value={tankerCount}
+                onChange={(e) => setTankerCount(e.target.value)}
+                placeholder="1"
+                min="1"
+                step="1"
+                required
+                error={errors.tankerCount}
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                Vehicle capacity will be used to calculate liters.
+              </p>
+            </div>
+            <div>
+              <Input
+                label="Calculated Liters"
+                type="number"
+                name="quantity"
+                value={formData.quantity}
+                onChange={() => {}}
+                placeholder="0"
+                min="0"
+                step="0.01"
+                disabled
+                error={errors.quantity}
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                Based on selected vehicle capacity × tanker count.
+              </p>
+            </div>
           </div>
         </div>
+
+        {/* Hidden per-liter rate for backend calculation (derived from supplier tanker rate / capacity) */}
+        <input type="hidden" name="purchaseRate" value={formData.purchaseRate} />
+
+        {/* Total Amount hidden from driver */}
 
         {/* GPS Location */}
         <div>
@@ -379,10 +405,10 @@ const LogCollection = () => {
           )}
         </div>
 
-        {/* Meter Photo */}
+        {/* Meter Photo (Optional) */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            {t('driver.meterPhoto')} *
+            {t('driver.meterPhoto')} ({t('common.optional')})
           </label>
           {photoPreview ? (
             <div className="space-y-2">

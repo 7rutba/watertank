@@ -111,15 +111,27 @@ const createDelivery = asyncHandler(async (req, res) => {
       return res.status(404).json({ message: 'Collection not found' });
     }
   }
-  
+
+  // Coerce numeric values and normalize deliveryRate to per-liter
+  const qtyNum = Number(quantity) || 0;
+  const capacity = Number(vehicle.capacity) || 0;
+  let ratePerLiter = Number(deliveryRate);
+  if (!ratePerLiter || !isFinite(ratePerLiter)) {
+    // Fallback: compute per-liter from society per-tanker rate and vehicle capacity
+    ratePerLiter = capacity > 0 ? Number(society.deliveryRate) / capacity : undefined;
+  }
+  if (!ratePerLiter || !isFinite(ratePerLiter)) {
+    return res.status(400).json({ message: 'Invalid delivery rate or vehicle capacity' });
+  }
+
   const delivery = await Delivery.create({
     vendorId: req.vendorId,
     vehicleId,
     driverId: req.user._id,
     societyId,
     collectionId: collectionId || null,
-    quantity,
-    deliveryRate: deliveryRate || society.deliveryRate,
+    quantity: qtyNum,
+    deliveryRate: ratePerLiter,
     location,
     meterPhoto: req.files?.meterPhoto ? req.files.meterPhoto[0].path : null,
     signature: req.files?.signature ? req.files.signature[0].path : null,

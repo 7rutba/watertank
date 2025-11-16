@@ -24,6 +24,12 @@ const userSchema = new mongoose.Schema({
     enum: ['super_admin', 'vendor', 'driver', 'accountant', 'society_admin'],
     required: true,
   },
+  // Compensation config (for drivers)
+  dailyWage: {
+    type: Number,
+    default: 0,
+    min: 0,
+  },
   phone: {
     type: String,
     trim: true,

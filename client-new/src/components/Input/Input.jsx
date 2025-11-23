@@ -11,7 +11,7 @@ const Input = ({
   className = '',
   ...props
 }) => {
-  const baseClasses = 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-colors';
+  const baseClasses = 'block w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200';
   const errorClasses = error ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : '';
   const disabledClasses = disabled ? 'bg-gray-100 cursor-not-allowed' : '';
 

@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const User = require('../models/User');
 const Vehicle = require('../models/Vehicle');
 const Delivery = require('../models/Delivery');
@@ -349,7 +350,7 @@ module.exports = {
       {
         $match: {
           vendorId,
-          driverId: new require('mongoose').Types.ObjectId(driverId),
+          driverId: new mongoose.Types.ObjectId(driverId),
           status: 'approved',
           chargedTo: 'driver',
           expenseDate: { $gte: start, $lt: end },

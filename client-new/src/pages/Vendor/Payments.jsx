@@ -187,7 +187,7 @@ const Payments = () => {
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className="space-y-4 sm:space-y-6 w-full max-w-full">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
         <div>
@@ -203,7 +203,7 @@ const Payments = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Supplier Payment Process */}
         <Card>
-          <h2 className="text-lg font-semibold mb-3">Supplier Payment Process</h2>
+          <h2 className="text-base sm:text-lg font-semibold mb-3">Supplier Payment Process</h2>
           <div className="space-y-3 text-sm">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
@@ -259,7 +259,7 @@ const Payments = () => {
 
             {/* Monthly Payment (Fixed Suppliers) */}
             <Card>
-              <h3 className="font-medium mb-2">Monthly Payment (Fixed Suppliers)</h3>
+              <h3 className="font-medium mb-2 text-sm sm:text-base">Monthly Payment (Fixed Suppliers)</h3>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-gray-700 mb-1">Amount</label>
@@ -291,7 +291,7 @@ const Payments = () => {
                 <div className="flex items-end">
                   <Button
                     variant="primary"
-                    className="w-full"
+                    className="w-full text-xs sm:text-sm"
                     disabled={!selectedSupplier || !supplierStats || !supplierOutstanding}
                     onClick={async () => {
                       try {
@@ -314,7 +314,8 @@ const Payments = () => {
                       }
                     }}
                   >
-                    Process Monthly Payment
+                    <span className="hidden sm:inline">Process Monthly Payment</span>
+                    <span className="sm:hidden">Process Payment</span>
                   </Button>
                 </div>
               </div>
@@ -323,15 +324,15 @@ const Payments = () => {
             {/* Mid-Month Payment (On-Demand) */}
             {supplierOutstanding && (
               <Card>
-                <h3 className="font-medium mb-2">Mid-Month / On-Demand</h3>
+                <h3 className="font-medium mb-2 text-sm sm:text-base">Mid-Month / On-Demand</h3>
                 <div className="space-y-2 max-h-48 overflow-y-auto border rounded p-2">
                   {supplierOutstanding.unpaidCollections.length === 0 ? (
                     <div className="text-xs text-gray-500">No unbilled collections.</div>
                   ) : (
                     supplierOutstanding.unpaidCollections.slice(0, 20).map(c => (
-                      <div key={c._id} className="flex justify-between text-xs border-b py-1">
-                        <span>{new Date(c.createdAt).toLocaleDateString()} • {c.quantity}L</span>
-                        <span>₹{Number(c.totalAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                      <div key={c._id} className="flex flex-col sm:flex-row sm:justify-between gap-1 text-xs border-b py-2">
+                        <span className="truncate">{new Date(c.createdAt).toLocaleDateString()} • {c.quantity}L</span>
+                        <span className="font-medium">₹{Number(c.totalAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                       </div>
                     ))
                   )}
@@ -366,7 +367,7 @@ const Payments = () => {
                   <div className="flex items-end">
                     <Button
                       variant="primary"
-                      className="w-full"
+                      className="w-full text-xs sm:text-sm"
                       disabled={!selectedSupplier || !formData.amount}
                       onClick={async () => {
                         try {
@@ -399,12 +400,12 @@ const Payments = () => {
             {/* Temporary Supplier (Per-Collection) */}
             {supplierOutstanding && supplierOutstanding.unpaidCollections.length > 0 && (
               <Card>
-                <h3 className="font-medium mb-2">Temporary Supplier (Per-Collection)</h3>
+                <h3 className="font-medium mb-2 text-sm sm:text-base">Temporary Supplier (Per-Collection)</h3>
                 <div className="space-y-2 max-h-48 overflow-y-auto border rounded p-2">
                   {supplierOutstanding.unpaidCollections.slice(0, 20).map(c => (
-                    <div key={c._id} className="flex items-center justify-between text-xs border-b py-1">
-                      <div>
-                        <div>{new Date(c.createdAt).toLocaleDateString()} • {c.quantity}L @ ₹{Number(c.purchaseRate).toFixed(2)}/L</div>
+                    <div key={c._id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs border-b py-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="truncate">{new Date(c.createdAt).toLocaleDateString()} • {c.quantity}L @ ₹{Number(c.purchaseRate).toFixed(2)}/L</div>
                         <div className="text-gray-500">Total: ₹{Number(c.totalAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
                       </div>
                       <Button
@@ -430,6 +431,7 @@ const Payments = () => {
                             alert(e.response?.data?.message || 'Failed to record per-collection payment');
                           }
                         }}
+                        className="w-full sm:w-auto whitespace-nowrap"
                       >
                         Pay Now
                       </Button>
@@ -443,7 +445,7 @@ const Payments = () => {
 
         {/* Society Invoicing & Payments */}
         <Card>
-          <h2 className="text-lg font-semibold mb-3">Society Payments & Invoicing</h2>
+          <h2 className="text-base sm:text-lg font-semibold mb-3">Society Payments & Invoicing</h2>
           <div className="space-y-3 text-sm">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
@@ -499,12 +501,14 @@ const Payments = () => {
                     alert(e.response?.data?.message || 'Failed to generate invoice');
                   }
                 }}
+                className="w-full"
               >
                 Generate Monthly Invoice
               </Button>
               <Button
                 variant="outline"
                 onClick={() => setShowModal(true)}
+                className="w-full"
               >
                 Record Society Payment
               </Button>
@@ -590,19 +594,19 @@ const Payments = () => {
         </Card>
       </div>
 
-      {/* Payments Table */}
+      {/* Payments Table - Desktop View */}
       <Card className="overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[900px]">
+        <div className="hidden lg:block overflow-x-auto">
+          <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('vendor.date')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('vendor.paymentType')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('vendor.relatedTo')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('vendor.paymentMethod')}</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">{t('vendor.amount')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('common.status')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('vendor.referenceNumber')}</th>
+                <th className="px-3 xl:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('vendor.date')}</th>
+                <th className="px-3 xl:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('vendor.paymentType')}</th>
+                <th className="px-3 xl:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('vendor.relatedTo')}</th>
+                <th className="px-3 xl:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('vendor.paymentMethod')}</th>
+                <th className="px-3 xl:px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">{t('vendor.amount')}</th>
+                <th className="px-3 xl:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('common.status')}</th>
+                <th className="px-3 xl:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('vendor.referenceNumber')}</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -615,23 +619,23 @@ const Payments = () => {
               ) : (
                 payments.map((payment) => (
                   <tr key={payment._id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                      {formatDate(payment.paymentDate)}
+                    <td className="px-3 xl:px-4 py-3 text-sm text-gray-900">
+                      <div className="whitespace-nowrap">{formatDate(payment.paymentDate)}</div>
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 capitalize">
-                      {payment.type}
+                    <td className="px-3 xl:px-4 py-3 text-sm text-gray-900 capitalize">
+                      <div className="whitespace-nowrap">{payment.type}</div>
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 capitalize">
-                      {payment.relatedTo}
+                    <td className="px-3 xl:px-4 py-3 text-sm text-gray-900 capitalize">
+                      <div className="whitespace-nowrap">{payment.relatedTo}</div>
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                      {getPaymentMethodLabel(payment.paymentMethod)}
+                    <td className="px-3 xl:px-4 py-3 text-sm text-gray-900">
+                      <div className="whitespace-nowrap">{getPaymentMethodLabel(payment.paymentMethod)}</div>
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 text-right">
-                      {formatCurrency(payment.amount || 0)}
+                    <td className="px-3 xl:px-4 py-3 text-sm font-medium text-gray-900 text-right">
+                      <div className="whitespace-nowrap">{formatCurrency(payment.amount || 0)}</div>
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <span className={`px-2 py-1 rounded text-xs font-medium ${
+                    <td className="px-3 xl:px-4 py-3">
+                      <span className={`px-2 py-1 rounded text-xs font-medium whitespace-nowrap ${
                         payment.status === 'completed' ? 'bg-green-100 text-green-800' :
                         payment.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
                         'bg-red-100 text-red-800'
@@ -639,8 +643,10 @@ const Payments = () => {
                         {payment.status}
                       </span>
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                      {payment.referenceNumber || '-'}
+                    <td className="px-3 xl:px-4 py-3 text-sm text-gray-900">
+                      <div className="max-w-[120px] truncate" title={payment.referenceNumber || '-'}>
+                        {payment.referenceNumber || '-'}
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -648,15 +654,76 @@ const Payments = () => {
             </tbody>
           </table>
         </div>
+
+        {/* Mobile/Tablet Card View */}
+        <div className="lg:hidden">
+          {payments.length === 0 ? (
+            <div className="px-4 py-8 text-center text-gray-500">
+              {t('vendor.noPayments')}
+            </div>
+          ) : (
+            <div className="space-y-4 p-4">
+              {payments.map((payment) => (
+                <div key={payment._id} className="border border-gray-200 rounded-lg p-4 space-y-3 bg-white hover:bg-gray-50 transition-colors">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="text-sm font-medium text-gray-900 mb-1">
+                        {formatCurrency(payment.amount || 0)}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {formatDate(payment.paymentDate)}
+                      </div>
+                    </div>
+                    <span className={`px-2 py-1 rounded text-xs font-medium whitespace-nowrap ${
+                      payment.status === 'completed' ? 'bg-green-100 text-green-800' :
+                      payment.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                      'bg-red-100 text-red-800'
+                    }`}>
+                      {payment.status}
+                    </span>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <span className="text-gray-600 text-xs">{t('vendor.paymentType')}:</span>
+                      <div className="font-medium text-gray-900 capitalize">{payment.type}</div>
+                    </div>
+                    <div>
+                      <span className="text-gray-600 text-xs">{t('vendor.relatedTo')}:</span>
+                      <div className="font-medium text-gray-900 capitalize">{payment.relatedTo}</div>
+                    </div>
+                    <div>
+                      <span className="text-gray-600 text-xs">{t('vendor.paymentMethod')}:</span>
+                      <div className="font-medium text-gray-900">{getPaymentMethodLabel(payment.paymentMethod)}</div>
+                    </div>
+                    <div>
+                      <span className="text-gray-600 text-xs">{t('vendor.referenceNumber')}:</span>
+                      <div className="font-medium text-gray-900">{payment.referenceNumber || '-'}</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </Card>
 
       {/* Record Payment Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className="bg-white rounded-lg max-w-xl w-full p-4 sm:p-6 my-auto">
-            <h2 className="text-xl font-bold text-gray-800 mb-4">{t('vendor.recordPayment')}</h2>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4 overflow-y-auto">
+          <div className="bg-white rounded-lg max-w-xl w-full p-4 sm:p-6 my-auto max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg sm:text-xl font-bold text-gray-800">{t('vendor.recordPayment')}</h2>
+              <button
+                onClick={() => { setShowModal(false); setFormData({ type: 'purchase', relatedTo: 'supplier', relatedId: '', invoiceId: '', amount: '', paymentMethod: 'cash', paymentDate: new Date().toISOString().split('T')[0], referenceNumber: '', notes: '' }); }}
+                className="text-gray-500 hover:text-gray-700 text-2xl leading-none p-1"
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{t('vendor.paymentType')} *</label>
                   <select
@@ -686,6 +753,23 @@ const Payments = () => {
                 </div>
               </div>
               
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {formData.relatedTo === 'supplier' ? 'Supplier' : formData.relatedTo === 'society' ? 'Society' : 'Driver'} *
+                </label>
+                <select
+                  value={formData.relatedId}
+                  onChange={(e) => setFormData({ ...formData, relatedId: e.target.value })}
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
+                  required
+                >
+                  <option value="">Select...</option>
+                  {(formData.relatedTo === 'supplier' ? suppliers : formData.relatedTo === 'society' ? societies : []).map(item => (
+                    <option key={item._id} value={item._id}>{item.name}</option>
+                  ))}
+                </select>
+              </div>
+              
               {formData.type === 'delivery' && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Invoice (Optional)</label>
@@ -704,7 +788,7 @@ const Payments = () => {
                 </div>
               )}
               
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{t('vendor.amount')} *</label>
                   <Input
@@ -735,7 +819,7 @@ const Payments = () => {
                 </div>
               </div>
               
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{t('vendor.paymentDate')} *</label>
                   <Input
@@ -766,15 +850,15 @@ const Payments = () => {
                 />
               </div>
               
-              <div className="flex gap-3 pt-4">
-                <Button type="submit" variant="primary" disabled={submitting} className="flex-1">
+              <div className="flex flex-col sm:flex-row gap-3 pt-4">
+                <Button type="submit" variant="primary" disabled={submitting} className="w-full sm:flex-1">
                   {submitting ? t('common.loading') : t('common.save')}
                 </Button>
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => { setShowModal(false); setFormData({ type: 'purchase', relatedTo: 'supplier', relatedId: '', invoiceId: '', amount: '', paymentMethod: 'cash', paymentDate: new Date().toISOString().split('T')[0], referenceNumber: '', notes: '' }); }}
-                  className="flex-1"
+                  className="w-full sm:flex-1"
                 >
                   {t('common.cancel')}
                 </Button>

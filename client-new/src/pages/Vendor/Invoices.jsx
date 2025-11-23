@@ -1,8 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import Card from '../../components/Card';
+import PageHeader from '../../components/PageHeader';
+import StatsCard from '../../components/StatsCard';
+import FilterBar from '../../components/FilterBar';
+import DataTable from '../../components/DataTable';
+import Modal from '../../components/Modal';
 import Button from '../../components/Button';
 import Input from '../../components/Input';
+import LoadingState from '../../components/LoadingState';
+import Card from '../../components/Card';
 import api from '../../utils/api';
 
 const Invoices = () => {
@@ -80,6 +86,16 @@ const Invoices = () => {
     setFilters({ ...filters, [e.target.name]: e.target.value });
   };
 
+  const clearFilters = () => {
+    setFilters({
+      type: '',
+      relatedTo: '',
+      status: '',
+      startDate: '',
+      endDate: '',
+    });
+  };
+
   const handleGenerateInvoice = async (e) => {
     e.preventDefault();
     try {
@@ -110,7 +126,6 @@ const Invoices = () => {
         responseType: 'blob',
       });
       
-      // Create blob URL and trigger download
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
@@ -149,410 +164,550 @@ const Invoices = () => {
     return invoice.payments.reduce((sum, p) => sum + (p.amount || 0), 0);
   };
 
+  const getStatusBadge = (status) => {
+    const styles = {
+      paid: 'bg-green-100 text-green-800',
+      sent: 'bg-blue-100 text-blue-800',
+      overdue: 'bg-red-100 text-red-800',
+      draft: 'bg-gray-100 text-gray-800',
+    };
+    return (
+      <span className={`px-3 py-1 rounded-lg text-xs font-medium ${styles[status] || styles.draft}`}>
+        {status}
+      </span>
+    );
+  };
+
+  const filterConfig = [
+    {
+      name: 'type',
+      label: 'Type',
+      type: 'select',
+      options: [
+        { value: '', label: 'All Types' },
+        { value: 'purchase', label: 'Purchase' },
+        { value: 'delivery', label: 'Delivery' },
+        { value: 'monthly', label: 'Monthly' },
+      ],
+    },
+    {
+      name: 'relatedTo',
+      label: t('vendor.relatedTo'),
+      type: 'select',
+      options: [
+        { value: '', label: 'All' },
+        { value: 'supplier', label: 'Supplier' },
+        { value: 'society', label: 'Society' },
+      ],
+    },
+    {
+      name: 'status',
+      label: t('common.status'),
+      type: 'select',
+      options: [
+        { value: '', label: 'All Status' },
+        { value: 'draft', label: 'Draft' },
+        { value: 'sent', label: 'Sent' },
+        { value: 'paid', label: 'Paid' },
+        { value: 'overdue', label: 'Overdue' },
+      ],
+    },
+    {
+      name: 'startDate',
+      label: t('vendor.startDate'),
+      type: 'date',
+    },
+    {
+      name: 'endDate',
+      label: t('vendor.endDate'),
+      type: 'date',
+    },
+  ];
+
+  const tableColumns = [
+    {
+      key: 'invoiceNumber',
+      label: t('vendor.invoiceNumber'),
+      render: (row) => <span className="font-medium">{row.invoiceNumber}</span>,
+    },
+    {
+      key: 'relatedTo',
+      label: t('vendor.relatedTo'),
+      render: (row) => (
+        <div className="max-w-[120px] truncate" title={row.relatedId?.name || 'N/A'}>
+          {row.relatedId?.name || 'N/A'}
+        </div>
+      ),
+    },
+    {
+      key: 'type',
+      label: 'Type',
+      render: (row) => <span className="capitalize">{row.type}</span>,
+    },
+    {
+      key: 'date',
+      label: t('vendor.date'),
+      render: (row) => formatDate(row.createdAt),
+    },
+    {
+      key: 'total',
+      label: t('vendor.total'),
+      align: 'right',
+      render: (row) => formatCurrency(row.total || 0),
+    },
+    {
+      key: 'paid',
+      label: t('vendor.paid'),
+      align: 'right',
+      render: (row) => <span className="text-green-600">{formatCurrency(calculatePaid(row))}</span>,
+    },
+    {
+      key: 'outstanding',
+      label: t('vendor.outstanding'),
+      align: 'right',
+      render: (row) => {
+        const outstanding = (row.total || 0) - calculatePaid(row);
+        return <span className="text-red-600 font-medium">{formatCurrency(outstanding)}</span>;
+      },
+    },
+    {
+      key: 'status',
+      label: t('common.status'),
+      render: (row) => getStatusBadge(row.status),
+    },
+    {
+      key: 'actions',
+      label: t('common.actions'),
+      render: (row) => (
+        <div className="flex gap-1.5 flex-wrap min-w-[200px]">
+          <Button
+            size="small"
+            variant="outline"
+            onClick={() => openDetailsModal(row)}
+            className="text-xs px-2 py-1"
+          >
+            View
+          </Button>
+          <Button
+            size="small"
+            variant="outline"
+            onClick={() => handleDownloadPDF(row._id, row.invoiceNumber)}
+            className="text-xs px-2 py-1"
+          >
+            PDF
+          </Button>
+          {row.status === 'draft' && (
+            <Button
+              size="small"
+              variant="primary"
+              onClick={() => handleSendInvoice(row._id)}
+              className="text-xs px-2 py-1"
+            >
+              Send
+            </Button>
+          )}
+        </div>
+      ),
+    },
+  ];
+
   if (loading && invoices.length === 0) {
     return (
-      <div className="space-y-4 sm:space-y-6">
-        <h1 className="text-xl sm:text-2xl font-bold text-gray-800">{t('vendor.invoices')}</h1>
-        <Card>
-          <div className="text-center py-12">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            <p className="mt-4 text-gray-600">{t('common.loading')}</p>
-          </div>
-        </Card>
+      <div className="space-y-6">
+        <PageHeader title={t('vendor.invoices')} />
+        <LoadingState message={t('common.loading')} />
       </div>
     );
   }
 
+  const totalAmount = invoices.reduce((sum, inv) => sum + (inv.total || 0), 0);
+  const totalPaid = invoices.reduce((sum, inv) => sum + calculatePaid(inv), 0);
+  const totalOutstanding = totalAmount - totalPaid;
+
   return (
-    <div className="space-y-4 sm:space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-800">{t('vendor.invoices')}</h1>
-          <p className="text-sm sm:text-base text-gray-600 mt-1">View and manage invoices</p>
-        </div>
-        <Button onClick={() => setShowGenerateModal(true)} variant="primary" className="w-full sm:w-auto">
-          {t('vendor.generateInvoice')}
-        </Button>
+    <div className="space-y-6 sm:space-y-8 w-full max-w-full">
+      {/* Page Header */}
+      <PageHeader
+        title={t('vendor.invoices')}
+        subtitle="View and manage invoices"
+        actions={
+          <Button onClick={() => setShowGenerateModal(true)} variant="primary">
+            {t('vendor.generateInvoice')}
+          </Button>
+        }
+      />
+
+      {/* Summary Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 sm:gap-6">
+        <StatsCard
+          title={t('vendor.totalInvoices')}
+          value={invoices.length}
+          icon="📄"
+          iconBg="bg-blue-500"
+        />
+        <StatsCard
+          title={t('vendor.totalAmount')}
+          value={formatCurrency(totalAmount)}
+          icon="💰"
+          iconBg="bg-green-500"
+        />
+        <StatsCard
+          title={t('vendor.paid')}
+          value={formatCurrency(totalPaid)}
+          icon="✅"
+          iconBg="bg-emerald-500"
+        />
+        <StatsCard
+          title={t('vendor.outstanding')}
+          value={formatCurrency(totalOutstanding)}
+          icon="⚠️"
+          iconBg="bg-red-500"
+        />
       </div>
 
       {/* Filters */}
-      <Card>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          <div>
-            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Type</label>
-            <select
-              name="type"
-              value={filters.type}
-              onChange={handleFilterChange}
-              className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
-            >
-              <option value="">All Types</option>
-              <option value="purchase">Purchase</option>
-              <option value="delivery">Delivery</option>
-              <option value="monthly">Monthly</option>
-            </select>
-          </div>
-          
-          <div>
-            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">{t('vendor.relatedTo')}</label>
-            <select
-              name="relatedTo"
-              value={filters.relatedTo}
-              onChange={handleFilterChange}
-              className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
-            >
-              <option value="">All</option>
-              <option value="supplier">Supplier</option>
-              <option value="society">Society</option>
-            </select>
-          </div>
-          
-          <div>
-            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">{t('common.status')}</label>
-            <select
-              name="status"
-              value={filters.status}
-              onChange={handleFilterChange}
-              className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
-            >
-              <option value="">All Status</option>
-              <option value="draft">Draft</option>
-              <option value="sent">Sent</option>
-              <option value="paid">Paid</option>
-              <option value="overdue">Overdue</option>
-            </select>
-          </div>
-          
-          <div>
-            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">{t('vendor.startDate')}</label>
-            <Input
-              type="date"
-              name="startDate"
-              value={filters.startDate}
-              onChange={handleFilterChange}
-              className="mb-0"
-            />
-          </div>
-          
-          <div>
-            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">{t('vendor.endDate')}</label>
-            <Input
-              type="date"
-              name="endDate"
-              value={filters.endDate}
-              onChange={handleFilterChange}
-              className="mb-0"
-            />
-          </div>
-        </div>
-      </Card>
+      <FilterBar
+        filters={filters}
+        onFilterChange={handleFilterChange}
+        onClear={clearFilters}
+        filterConfig={filterConfig}
+      />
 
-      {/* Summary Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <Card>
-          <div className="text-sm text-gray-600">{t('vendor.totalInvoices')}</div>
-          <div className="text-2xl font-bold text-gray-800 mt-1">{invoices.length}</div>
-        </Card>
-        <Card>
-          <div className="text-sm text-gray-600">{t('vendor.totalAmount')}</div>
-          <div className="text-2xl font-bold text-primary mt-1">
-            {formatCurrency(invoices.reduce((sum, inv) => sum + (inv.total || 0), 0))}
-          </div>
-        </Card>
-        <Card>
-          <div className="text-sm text-gray-600">{t('vendor.paid')}</div>
-          <div className="text-2xl font-bold text-green-600 mt-1">
-            {formatCurrency(invoices.reduce((sum, inv) => sum + calculatePaid(inv), 0))}
-          </div>
-        </Card>
-        <Card>
-          <div className="text-sm text-gray-600">{t('vendor.outstanding')}</div>
-          <div className="text-2xl font-bold text-red-600 mt-1">
-            {formatCurrency(invoices.reduce((sum, inv) => sum + (inv.total || 0) - calculatePaid(inv), 0))}
-          </div>
-        </Card>
+      {/* Invoices Table - Desktop View */}
+      <div className="hidden lg:block w-full">
+        <div className="w-full overflow-x-auto">
+          <DataTable
+            columns={tableColumns}
+            data={invoices}
+            loading={loading}
+            emptyMessage={t('vendor.noInvoices')}
+          />
+        </div>
       </div>
 
-      {/* Invoices Table */}
-      <Card className="overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[900px]">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('vendor.invoiceNumber')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('vendor.relatedTo')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('vendor.date')}</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">{t('vendor.total')}</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">{t('vendor.paid')}</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">{t('vendor.outstanding')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('common.status')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('common.actions')}</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {invoices.length === 0 ? (
-                <tr>
-                  <td colSpan="9" className="px-4 py-8 text-center text-gray-500">
-                    {t('vendor.noInvoices')}
-                  </td>
-                </tr>
-              ) : (
-                invoices.map((invoice) => {
-                  const paid = calculatePaid(invoice);
-                  const outstanding = invoice.total - paid;
-                  return (
-                    <tr key={invoice._id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {invoice.invoiceNumber}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                        {invoice.relatedId?.name || 'N/A'}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 capitalize">
-                        {invoice.type}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                        {formatDate(invoice.createdAt)}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-right">
-                        {formatCurrency(invoice.total || 0)}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-green-600 text-right">
-                        {formatCurrency(paid)}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-red-600 text-right font-medium">
-                        {formatCurrency(outstanding)}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <span className={`px-2 py-1 rounded text-xs font-medium ${
-                          invoice.status === 'paid' ? 'bg-green-100 text-green-800' :
-                          invoice.status === 'sent' ? 'bg-blue-100 text-blue-800' :
-                          invoice.status === 'overdue' ? 'bg-red-100 text-red-800' :
-                          'bg-gray-100 text-gray-800'
-                        }`}>
-                          {invoice.status}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm">
-                        <div className="flex gap-2 flex-wrap">
-                          <Button
-                            size="small"
-                            variant="outline"
-                            onClick={() => openDetailsModal(invoice)}
-                          >
-                            {t('vendor.viewDetails')}
-                          </Button>
-                          <Button
-                            size="small"
-                            variant="outline"
-                            onClick={() => handleDownloadPDF(invoice._id, invoice.invoiceNumber)}
-                          >
-                            📄 {t('vendor.downloadPDF')}
-                          </Button>
-                          {invoice.status === 'draft' && (
-                            <Button
-                              size="small"
-                              variant="primary"
-                              onClick={() => handleSendInvoice(invoice._id)}
-                            >
-                              {t('vendor.sendInvoice')}
-                            </Button>
-                          )}
+      {/* Mobile/Tablet Card View */}
+      <div className="lg:hidden">
+        {loading ? (
+          <Card>
+            <div className="py-12 text-center">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-4"></div>
+              <p className="text-gray-600">{t('common.loading')}</p>
+            </div>
+          </Card>
+        ) : invoices.length === 0 ? (
+          <Card>
+            <div className="py-12 text-center">
+              <p className="text-gray-500">{t('vendor.noInvoices')}</p>
+            </div>
+          </Card>
+        ) : (
+          <div className="space-y-4">
+            {invoices.map((invoice) => {
+              const paid = calculatePaid(invoice);
+              const outstanding = (invoice.total || 0) - paid;
+              return (
+                <Card key={invoice._id} className="p-4">
+                  <div className="space-y-3">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="text-sm font-medium text-gray-900 mb-1">
+                          {invoice.invoiceNumber}
                         </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+                        <div className="text-xs text-gray-500">
+                          {formatDate(invoice.createdAt)}
+                        </div>
+                      </div>
+                      <div>{getStatusBadge(invoice.status)}</div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <span className="text-gray-600 text-xs">{t('vendor.relatedTo')}:</span>
+                        <div className="font-medium text-gray-900 capitalize">{invoice.relatedTo}</div>
+                      </div>
+                      <div>
+                        <span className="text-gray-600 text-xs">Name:</span>
+                        <div className="font-medium text-gray-900">{invoice.relatedId?.name || 'N/A'}</div>
+                      </div>
+                      <div>
+                        <span className="text-gray-600 text-xs">Type:</span>
+                        <div className="font-medium text-gray-900 capitalize">{invoice.type}</div>
+                      </div>
+                      <div>
+                        <span className="text-gray-600 text-xs">{t('vendor.total')}:</span>
+                        <div className="font-medium text-gray-900">{formatCurrency(invoice.total || 0)}</div>
+                      </div>
+                      <div>
+                        <span className="text-gray-600 text-xs">{t('vendor.paid')}:</span>
+                        <div className="font-medium text-green-600">{formatCurrency(paid)}</div>
+                      </div>
+                      <div>
+                        <span className="text-gray-600 text-xs">{t('vendor.outstanding')}:</span>
+                        <div className="font-medium text-red-600">{formatCurrency(outstanding)}</div>
+                      </div>
+                    </div>
+
+                    <div className="pt-3 border-t border-gray-200">
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          size="small"
+                          variant="outline"
+                          onClick={() => openDetailsModal(invoice)}
+                          className="text-xs flex-1 sm:flex-none"
+                        >
+                          {t('vendor.viewDetails')}
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="outline"
+                          onClick={() => handleDownloadPDF(invoice._id, invoice.invoiceNumber)}
+                          className="text-xs flex-1 sm:flex-none"
+                        >
+                          📄 PDF
+                        </Button>
+                        {invoice.status === 'draft' && (
+                          <Button
+                            size="small"
+                            variant="primary"
+                            onClick={() => handleSendInvoice(invoice._id)}
+                            className="text-xs flex-1 sm:flex-none"
+                          >
+                            {t('vendor.sendInvoice')}
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+        )}
+      </div>
 
       {/* Generate Invoice Modal */}
-      {showGenerateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className="bg-white rounded-lg max-w-xl w-full p-4 sm:p-6 my-auto">
-            <h2 className="text-xl font-bold text-gray-800 mb-4">{t('vendor.generateMonthlyInvoice')}</h2>
-            <form onSubmit={handleGenerateInvoice} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{t('vendor.relatedTo')} *</label>
-                <select
-                  value={generateForm.relatedTo}
-                  onChange={(e) => setGenerateForm({ ...generateForm, relatedTo: e.target.value, relatedId: '' })}
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
-                  required
-                >
-                  <option value="society">Society</option>
-                  <option value="supplier">Supplier</option>
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {generateForm.relatedTo === 'society' ? t('vendor.selectSociety') : t('vendor.selectSupplier')} *
-                </label>
-                <select
-                  value={generateForm.relatedId}
-                  onChange={(e) => setGenerateForm({ ...generateForm, relatedId: e.target.value })}
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
-                  required
-                >
-                  <option value="">Select...</option>
-                  {(generateForm.relatedTo === 'society' ? societies : suppliers).map(item => (
-                    <option key={item._id} value={item._id}>{item.name}</option>
-                  ))}
-                </select>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('vendor.startDate')} *</label>
-                  <Input
-                    type="date"
-                    value={generateForm.startDate}
-                    onChange={(e) => setGenerateForm({ ...generateForm, startDate: e.target.value })}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('vendor.endDate')} *</label>
-                  <Input
-                    type="date"
-                    value={generateForm.endDate}
-                    onChange={(e) => setGenerateForm({ ...generateForm, endDate: e.target.value })}
-                    required
-                  />
-                </div>
-              </div>
-              
-              <div className="flex gap-3 pt-4">
-                <Button type="submit" variant="primary" disabled={generating} className="flex-1">
-                  {generating ? t('common.loading') : t('vendor.generateInvoice')}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => { setShowGenerateModal(false); setGenerateForm({ relatedTo: 'society', relatedId: '', startDate: '', endDate: '' }); }}
-                  className="flex-1"
-                >
-                  {t('common.cancel')}
-                </Button>
-              </div>
-            </form>
+      <Modal
+        isOpen={showGenerateModal}
+        onClose={() => {
+          setShowGenerateModal(false);
+          setGenerateForm({ relatedTo: 'society', relatedId: '', startDate: '', endDate: '' });
+        }}
+        title="Generate Invoice"
+        size="md"
+        footer={
+          <div className="flex flex-col sm:flex-row gap-2 sm:justify-end">
+            <Button
+              variant="primary"
+              onClick={handleGenerateInvoice}
+              disabled={generating}
+              className="w-full sm:w-auto"
+            >
+              {generating ? t('common.loading') : t('vendor.generateInvoice')}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowGenerateModal(false);
+                setGenerateForm({ relatedTo: 'society', relatedId: '', startDate: '', endDate: '' });
+              }}
+              disabled={generating}
+              className="w-full sm:w-auto"
+            >
+              {t('common.cancel')}
+            </Button>
           </div>
-        </div>
-      )}
+        }
+      >
+        <form onSubmit={handleGenerateInvoice} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              {t('vendor.relatedTo')} *
+            </label>
+            <select
+              value={generateForm.relatedTo}
+              onChange={(e) => setGenerateForm({ ...generateForm, relatedTo: e.target.value, relatedId: '' })}
+              className="block w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-colors"
+              required
+            >
+              <option value="society">Society</option>
+              <option value="supplier">Supplier</option>
+            </select>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              {generateForm.relatedTo === 'society' ? t('vendor.selectSociety') : t('vendor.selectSupplier')} *
+            </label>
+            <select
+              value={generateForm.relatedId}
+              onChange={(e) => setGenerateForm({ ...generateForm, relatedId: e.target.value })}
+              className="block w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-colors"
+              required
+            >
+              <option value="">Select...</option>
+              {(generateForm.relatedTo === 'society' ? societies : suppliers).map(item => (
+                <option key={item._id} value={item._id}>{item.name}</option>
+              ))}
+            </select>
+          </div>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Input
+              type="date"
+              label={t('vendor.startDate')}
+              value={generateForm.startDate}
+              onChange={(e) => setGenerateForm({ ...generateForm, startDate: e.target.value })}
+              required
+            />
+            <Input
+              type="date"
+              label={t('vendor.endDate')}
+              value={generateForm.endDate}
+              onChange={(e) => setGenerateForm({ ...generateForm, endDate: e.target.value })}
+              required
+            />
+          </div>
+        </form>
+      </Modal>
 
       {/* Invoice Details Modal */}
-      {showDetailsModal && selectedInvoice && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className="bg-white rounded-lg max-w-4xl w-full p-4 sm:p-6 my-auto max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-gray-800">{t('vendor.invoiceDetails')}</h2>
-              <button
-                onClick={() => { setShowDetailsModal(false); setSelectedInvoice(null); }}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                ✕
-              </button>
+      <Modal
+        isOpen={showDetailsModal}
+        onClose={() => { setShowDetailsModal(false); setSelectedInvoice(null); }}
+        title={t('vendor.invoiceDetails')}
+        size="lg"
+        footer={
+          <div className="flex flex-col sm:flex-row gap-2 sm:justify-end">
+            <Button
+              variant="primary"
+              onClick={() => selectedInvoice && handleDownloadPDF(selectedInvoice._id, selectedInvoice.invoiceNumber)}
+              className="w-full sm:w-auto"
+            >
+              📄 {t('vendor.downloadPDF')}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => { setShowDetailsModal(false); setSelectedInvoice(null); }}
+              className="w-full sm:w-auto"
+            >
+              {t('common.close')}
+            </Button>
+          </div>
+        }
+      >
+        {selectedInvoice && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <span className="text-sm text-gray-600 block mb-1">{t('vendor.invoiceNumber')}:</span>
+                <p className="font-medium">{selectedInvoice.invoiceNumber}</p>
+              </div>
+              <div>
+                <span className="text-sm text-gray-600 block mb-1">{t('common.status')}:</span>
+                <div>{getStatusBadge(selectedInvoice.status)}</div>
+              </div>
+              <div>
+                <span className="text-sm text-gray-600 block mb-1">{t('vendor.relatedTo')}:</span>
+                <p className="font-medium capitalize">{selectedInvoice.relatedTo}</p>
+              </div>
+              <div>
+                <span className="text-sm text-gray-600 block mb-1">Name:</span>
+                <p className="font-medium">{selectedInvoice.relatedId?.name || 'N/A'}</p>
+              </div>
+              <div>
+                <span className="text-sm text-gray-600 block mb-1">{t('vendor.subtotal')}:</span>
+                <p className="font-medium">{formatCurrency(selectedInvoice.subtotal || 0)}</p>
+              </div>
+              <div>
+                <span className="text-sm text-gray-600 block mb-1">{t('vendor.total')}:</span>
+                <p className="font-medium text-lg text-primary">
+                  {formatCurrency(selectedInvoice.total || 0)}
+                </p>
+              </div>
+              <div>
+                <span className="text-sm text-gray-600 block mb-1">{t('vendor.paid')}:</span>
+                <p className="font-medium text-green-600">
+                  {formatCurrency(calculatePaid(selectedInvoice))}
+                </p>
+              </div>
+              <div>
+                <span className="text-sm text-gray-600 block mb-1">{t('vendor.outstanding')}:</span>
+                <p className="font-medium text-red-600">
+                  {formatCurrency((selectedInvoice.total || 0) - calculatePaid(selectedInvoice))}
+                </p>
+              </div>
             </div>
             
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="text-gray-600">{t('vendor.invoiceNumber')}:</span>
-                  <span className="ml-2 font-medium">{selectedInvoice.invoiceNumber}</span>
+            {selectedInvoice.items && selectedInvoice.items.length > 0 && (
+              <div>
+                <h3 className="font-semibold text-gray-900 mb-3">{t('vendor.items')}</h3>
+                {/* Desktop Table View */}
+                <div className="hidden sm:block overflow-x-auto border border-gray-200 rounded-lg">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-3 text-left font-medium text-gray-700">Date</th>
+                        <th className="px-4 py-3 text-left font-medium text-gray-700">{t('vendor.driver')}</th>
+                        <th className="px-4 py-3 text-left font-medium text-gray-700">{t('vendor.vehicle')}</th>
+                        <th className="px-4 py-3 text-right font-medium text-gray-700">{t('vendor.quantity')}</th>
+                        <th className="px-4 py-3 text-right font-medium text-gray-700">{t('vendor.rate')}</th>
+                        <th className="px-4 py-3 text-right font-medium text-gray-700">{t('vendor.amount')}</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {selectedInvoice.items.map((item, idx) => (
+                        <tr key={idx}>
+                          <td className="px-4 py-3">{formatDate(item.date)}</td>
+                          <td className="px-4 py-3">{item.driverName || '-'}</td>
+                          <td className="px-4 py-3">{item.vehicleNumber || '-'}</td>
+                          <td className="px-4 py-3 text-right">{item.quantity}L</td>
+                          <td className="px-4 py-3 text-right">{formatCurrency(item.rate || 0)}</td>
+                          <td className="px-4 py-3 text-right font-medium">{formatCurrency(item.amount || 0)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-                <div>
-                  <span className="text-gray-600">{t('common.status')}:</span>
-                  <span className={`ml-2 px-2 py-1 rounded text-xs font-medium ${
-                    selectedInvoice.status === 'paid' ? 'bg-green-100 text-green-800' :
-                    selectedInvoice.status === 'sent' ? 'bg-blue-100 text-blue-800' :
-                    selectedInvoice.status === 'overdue' ? 'bg-red-100 text-red-800' :
-                    'bg-gray-100 text-gray-800'
-                  }`}>
-                    {selectedInvoice.status}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-gray-600">{t('vendor.relatedTo')}:</span>
-                  <span className="ml-2 font-medium capitalize">{selectedInvoice.relatedTo}</span>
-                </div>
-                <div>
-                  <span className="text-gray-600">Name:</span>
-                  <span className="ml-2 font-medium">{selectedInvoice.relatedId?.name || 'N/A'}</span>
-                </div>
-                <div>
-                  <span className="text-gray-600">{t('vendor.subtotal')}:</span>
-                  <span className="ml-2 font-medium">{formatCurrency(selectedInvoice.subtotal || 0)}</span>
-                </div>
-                <div>
-                  <span className="text-gray-600">{t('vendor.total')}:</span>
-                  <span className="ml-2 font-medium text-lg text-primary">{formatCurrency(selectedInvoice.total || 0)}</span>
-                </div>
-                <div>
-                  <span className="text-gray-600">{t('vendor.paid')}:</span>
-                  <span className="ml-2 font-medium text-green-600">{formatCurrency(calculatePaid(selectedInvoice))}</span>
-                </div>
-                <div>
-                  <span className="text-gray-600">{t('vendor.outstanding')}:</span>
-                  <span className="ml-2 font-medium text-red-600">{formatCurrency((selectedInvoice.total || 0) - calculatePaid(selectedInvoice))}</span>
+                {/* Mobile Card View */}
+                <div className="sm:hidden space-y-3">
+                  {selectedInvoice.items.map((item, idx) => (
+                    <div key={idx} className="border border-gray-200 rounded-lg p-3 space-y-2">
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        <div>
+                          <span className="text-gray-600 text-xs">Date:</span>
+                          <div className="font-medium">{formatDate(item.date)}</div>
+                        </div>
+                        <div>
+                          <span className="text-gray-600 text-xs">{t('vendor.quantity')}:</span>
+                          <div className="font-medium">{item.quantity}L</div>
+                        </div>
+                        <div>
+                          <span className="text-gray-600 text-xs">{t('vendor.driver')}:</span>
+                          <div className="font-medium">{item.driverName || '-'}</div>
+                        </div>
+                        <div>
+                          <span className="text-gray-600 text-xs">{t('vendor.rate')}:</span>
+                          <div className="font-medium">{formatCurrency(item.rate || 0)}</div>
+                        </div>
+                        <div>
+                          <span className="text-gray-600 text-xs">{t('vendor.vehicle')}:</span>
+                          <div className="font-medium">{item.vehicleNumber || '-'}</div>
+                        </div>
+                        <div>
+                          <span className="text-gray-600 text-xs">{t('vendor.amount')}:</span>
+                          <div className="font-medium text-primary">{formatCurrency(item.amount || 0)}</div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
-              
-              {selectedInvoice.items && selectedInvoice.items.length > 0 && (
-                <div>
-                  <h3 className="font-semibold text-gray-800 mb-2">{t('vendor.items')}</h3>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="px-3 py-2 text-left">Date</th>
-                          <th className="px-3 py-2 text-left">{t('vendor.driver')}</th>
-                          <th className="px-3 py-2 text-left">{t('vendor.vehicle')}</th>
-                          <th className="px-3 py-2 text-right">{t('vendor.quantity')}</th>
-                          <th className="px-3 py-2 text-right">{t('vendor.rate')}</th>
-                          <th className="px-3 py-2 text-right">{t('vendor.amount')}</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {selectedInvoice.items.map((item, idx) => (
-                          <tr key={idx} className="border-b">
-                            <td className="px-3 py-2">{formatDate(item.date)}</td>
-                            <td className="px-3 py-2">{item.driverName || '-'}</td>
-                            <td className="px-3 py-2">{item.vehicleNumber || '-'}</td>
-                            <td className="px-3 py-2 text-right">{item.quantity}L</td>
-                            <td className="px-3 py-2 text-right">{formatCurrency(item.rate || 0)}</td>
-                            <td className="px-3 py-2 text-right font-medium">{formatCurrency(item.amount || 0)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-            </div>
-            
-            <div className="mt-6 flex justify-end gap-3">
-              <Button 
-                variant="primary" 
-                onClick={() => handleDownloadPDF(selectedInvoice._id, selectedInvoice.invoiceNumber)}
-              >
-                📄 {t('vendor.downloadPDF')}
-              </Button>
-              <Button variant="outline" onClick={() => { setShowDetailsModal(false); setSelectedInvoice(null); }}>
-                {t('common.close')}
-              </Button>
-            </div>
+            )}
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
     </div>
   );
 };
 
 export default Invoices;
-

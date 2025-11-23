@@ -11,4 +11,6 @@ export { default as Payments } from './Payments.jsx';
 export { default as Reports } from './Reports.jsx';
 export { default as Financials } from './Financials.jsx';
 export { default as Accountants } from './Accountants.jsx';
+// Export payment sub-components from Payments folder
+export { AllPayments, SupplierPayments, SocietyPayments, DriverPayments, RecordPayment } from './Payments/index.jsx';
 

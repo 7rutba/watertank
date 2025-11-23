@@ -222,18 +222,24 @@ const Deliveries = () => {
           
           <div>
             <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">{t('vendor.endDate')}</label>
-            <div className="flex gap-2">
-              <Input
-                type="date"
-                name="endDate"
-                value={filters.endDate}
-                onChange={handleFilterChange}
-                className="mb-0 flex-1"
-              />
-              <Button variant="outline" size="small" onClick={clearFilters} className="whitespace-nowrap">
-                Clear
-              </Button>
-            </div>
+            <Input
+              type="date"
+              name="endDate"
+              value={filters.endDate}
+              onChange={handleFilterChange}
+              className="mb-0"
+            />
+          </div>
+          
+          <div className="sm:col-span-2 lg:col-span-1 flex items-end">
+            <Button 
+              variant="outline" 
+              size="small" 
+              onClick={clearFilters} 
+              className="w-full sm:w-auto whitespace-nowrap"
+            >
+              Clear Filters
+            </Button>
           </div>
         </div>
       </Card>
@@ -262,21 +268,21 @@ const Deliveries = () => {
         </Card>
       </div>
 
-      {/* Deliveries Table */}
+      {/* Deliveries Table - Desktop View */}
       <Card className="overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[900px]">
+        <div className="hidden lg:block overflow-x-auto">
+          <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('vendor.date')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('vendor.driver')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('vendor.societyName')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('vendor.vehicle')}</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Tankers</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Rate (/Tanker)</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">{t('vendor.amount')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('common.status')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('common.actions')}</th>
+                <th className="px-3 xl:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('vendor.date')}</th>
+                <th className="px-3 xl:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('vendor.driver')}</th>
+                <th className="px-3 xl:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('vendor.societyName')}</th>
+                <th className="px-3 xl:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('vendor.vehicle')}</th>
+                <th className="px-3 xl:px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Tankers</th>
+                <th className="px-3 xl:px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Rate</th>
+                <th className="px-3 xl:px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">{t('vendor.amount')}</th>
+                <th className="px-3 xl:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('common.status')}</th>
+                <th className="px-3 xl:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('common.actions')}</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -289,30 +295,30 @@ const Deliveries = () => {
               ) : (
                 deliveries.map((delivery) => (
                   <tr key={delivery._id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                      {formatDate(delivery.createdAt)}
+                    <td className="px-3 xl:px-4 py-3 text-sm text-gray-900">
+                      <div className="whitespace-nowrap">{formatDate(delivery.createdAt)}</div>
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                      {delivery.driverId?.name || 'N/A'}
+                    <td className="px-3 xl:px-4 py-3 text-sm text-gray-900">
+                      <div className="whitespace-nowrap">{delivery.driverId?.name || 'N/A'}</div>
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                      {delivery.societyId?.name || 'N/A'}
+                    <td className="px-3 xl:px-4 py-3 text-sm text-gray-900">
+                      <div className="max-w-[150px] truncate">{delivery.societyId?.name || 'N/A'}</div>
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                      {delivery.vehicleId?.vehicleNumber || 'N/A'}
+                    <td className="px-3 xl:px-4 py-3 text-sm text-gray-900">
+                      <div className="whitespace-nowrap">{delivery.vehicleId?.vehicleNumber || 'N/A'}</div>
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-right">
-                      {formatTankerCount(delivery.quantity, delivery?.vehicleId)}
+                    <td className="px-3 xl:px-4 py-3 text-sm text-gray-900 text-right">
+                      <div className="whitespace-nowrap">{formatTankerCount(delivery.quantity, delivery?.vehicleId)}</div>
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-right">
-                      {formatCurrency(perTankerRate(delivery.deliveryRate || 0, delivery?.vehicleId))}/Tanker
+                    <td className="px-3 xl:px-4 py-3 text-sm text-gray-900 text-right">
+                      <div className="whitespace-nowrap">{formatCurrency(perTankerRate(delivery.deliveryRate || 0, delivery?.vehicleId))}</div>
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 text-right">
-                      {formatCurrency(delivery.totalAmount || 0)}
+                    <td className="px-3 xl:px-4 py-3 text-sm font-medium text-gray-900 text-right">
+                      <div className="whitespace-nowrap">{formatCurrency(delivery.totalAmount || 0)}</div>
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
+                    <td className="px-3 xl:px-4 py-3">
                       <div className="flex flex-col gap-1">
-                        <span className={`px-2 py-1 rounded text-xs font-medium ${
+                        <span className={`px-2 py-1 rounded text-xs font-medium whitespace-nowrap ${
                           delivery.status === 'completed' ? 'bg-green-100 text-green-800' :
                           delivery.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
                           'bg-red-100 text-red-800'
@@ -320,17 +326,18 @@ const Deliveries = () => {
                           {delivery.status}
                         </span>
                         {delivery.isInvoiced && (
-                          <span className="px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                          <span className="px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800 whitespace-nowrap">
                             Invoiced
                           </span>
                         )}
                       </div>
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm">
+                    <td className="px-3 xl:px-4 py-3 text-sm">
                       <Button
                         size="small"
                         variant="outline"
                         onClick={() => openDetailsModal(delivery)}
+                        className="text-xs"
                       >
                         {t('vendor.viewDetails')}
                       </Button>
@@ -341,31 +348,108 @@ const Deliveries = () => {
             </tbody>
           </table>
         </div>
+
+        {/* Mobile/Tablet Card View */}
+        <div className="lg:hidden">
+          {deliveries.length === 0 ? (
+            <div className="px-4 py-8 text-center text-gray-500">
+              {t('vendor.noDeliveries')}
+            </div>
+          ) : (
+            <div className="space-y-4 p-4">
+              {deliveries.map((delivery) => (
+                <div key={delivery._id} className="border border-gray-200 rounded-lg p-4 space-y-3 bg-white hover:bg-gray-50 transition-colors">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="text-sm font-medium text-gray-900 mb-1">
+                        {delivery.societyId?.name || 'N/A'}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {formatDate(delivery.createdAt)}
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-1 items-end">
+                      <span className={`px-2 py-1 rounded text-xs font-medium whitespace-nowrap ${
+                        delivery.status === 'completed' ? 'bg-green-100 text-green-800' :
+                        delivery.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-red-100 text-red-800'
+                      }`}>
+                        {delivery.status}
+                      </span>
+                      {delivery.isInvoiced && (
+                        <span className="px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800 whitespace-nowrap">
+                          Invoiced
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <span className="text-gray-600 text-xs">{t('vendor.driver')}:</span>
+                      <div className="font-medium text-gray-900">{delivery.driverId?.name || 'N/A'}</div>
+                    </div>
+                    <div>
+                      <span className="text-gray-600 text-xs">{t('vendor.vehicle')}:</span>
+                      <div className="font-medium text-gray-900">{delivery.vehicleId?.vehicleNumber || 'N/A'}</div>
+                    </div>
+                    <div>
+                      <span className="text-gray-600 text-xs">Tankers:</span>
+                      <div className="font-medium text-gray-900">{formatTankerCount(delivery.quantity, delivery?.vehicleId)}</div>
+                    </div>
+                    <div>
+                      <span className="text-gray-600 text-xs">Rate:</span>
+                      <div className="font-medium text-gray-900">{formatCurrency(perTankerRate(delivery.deliveryRate || 0, delivery?.vehicleId))}</div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center justify-between pt-2 border-t border-gray-200">
+                    <div>
+                      <span className="text-xs text-gray-600">{t('vendor.amount')}:</span>
+                      <div className="text-lg font-bold text-primary">
+                        {formatCurrency(delivery.totalAmount || 0)}
+                      </div>
+                    </div>
+                    <Button
+                      size="small"
+                      variant="outline"
+                      onClick={() => openDetailsModal(delivery)}
+                      className="text-xs"
+                    >
+                      {t('vendor.viewDetails')}
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </Card>
 
       {/* Delivery Details Modal */}
       {showDetailsModal && selectedDelivery && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className="bg-white rounded-lg max-w-2xl w-full p-4 sm:p-6 my-auto max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4 overflow-y-auto">
+          <div className="bg-white rounded-lg max-w-2xl w-full p-4 sm:p-6 my-auto max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-gray-800">{t('vendor.deliveryDetails')}</h2>
+              <h2 className="text-lg sm:text-xl font-bold text-gray-800">{t('vendor.deliveryDetails')}</h2>
               <button
                 onClick={() => { setShowDetailsModal(false); setSelectedDelivery(null); }}
-                className="text-gray-500 hover:text-gray-700"
+                className="text-gray-500 hover:text-gray-700 text-2xl leading-none p-1"
+                aria-label="Close"
               >
                 ✕
               </button>
             </div>
             
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                 <div>
-                  <span className="text-gray-600">{t('vendor.date')}:</span>
-                  <span className="ml-2 font-medium">{formatDate(selectedDelivery.createdAt)}</span>
+                  <span className="text-gray-600 block mb-1">{t('vendor.date')}:</span>
+                  <span className="font-medium">{formatDate(selectedDelivery.createdAt)}</span>
                 </div>
                 <div>
-                  <span className="text-gray-600">{t('common.status')}:</span>
-                  <span className={`ml-2 px-2 py-1 rounded text-xs font-medium ${
+                  <span className="text-gray-600 block mb-1">{t('common.status')}:</span>
+                  <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${
                     selectedDelivery.status === 'completed' ? 'bg-green-100 text-green-800' :
                     selectedDelivery.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
                     'bg-red-100 text-red-800'
@@ -374,38 +458,38 @@ const Deliveries = () => {
                   </span>
                 </div>
                 <div>
-                  <span className="text-gray-600">{t('vendor.driver')}:</span>
-                  <span className="ml-2 font-medium">{selectedDelivery.driverId?.name || 'N/A'}</span>
+                  <span className="text-gray-600 block mb-1">{t('vendor.driver')}:</span>
+                  <span className="font-medium">{selectedDelivery.driverId?.name || 'N/A'}</span>
                 </div>
                 <div>
-                  <span className="text-gray-600">{t('vendor.vehicle')}:</span>
-                  <span className="ml-2 font-medium">{selectedDelivery.vehicleId?.vehicleNumber || 'N/A'}</span>
+                  <span className="text-gray-600 block mb-1">{t('vendor.vehicle')}:</span>
+                  <span className="font-medium">{selectedDelivery.vehicleId?.vehicleNumber || 'N/A'}</span>
                 </div>
                 <div>
-                  <span className="text-gray-600">{t('vendor.societyName')}:</span>
-                  <span className="ml-2 font-medium">{selectedDelivery.societyId?.name || 'N/A'}</span>
+                  <span className="text-gray-600 block mb-1">{t('vendor.societyName')}:</span>
+                  <span className="font-medium">{selectedDelivery.societyId?.name || 'N/A'}</span>
                 </div>
                 <div>
-                  <span className="text-gray-600">Tankers:</span>
-                  <span className="ml-2 font-medium">{formatTankerCount(selectedDelivery.quantity, selectedDelivery?.vehicleId)}</span>
+                  <span className="text-gray-600 block mb-1">Tankers:</span>
+                  <span className="font-medium">{formatTankerCount(selectedDelivery.quantity, selectedDelivery?.vehicleId)}</span>
                 </div>
                 <div>
-                  <span className="text-gray-600">Rate:</span>
-                  <span className="ml-2 font-medium">{formatCurrency(perTankerRate(selectedDelivery.deliveryRate || 0, selectedDelivery?.vehicleId))}/Tanker</span>
+                  <span className="text-gray-600 block mb-1">Rate:</span>
+                  <span className="font-medium">{formatCurrency(perTankerRate(selectedDelivery.deliveryRate || 0, selectedDelivery?.vehicleId))}/Tanker</span>
                 </div>
                 <div>
-                  <span className="text-gray-600">{t('vendor.amount')}:</span>
-                  <span className="ml-2 font-medium text-lg text-primary">{formatCurrency(selectedDelivery.totalAmount || 0)}</span>
+                  <span className="text-gray-600 block mb-1">{t('vendor.amount')}:</span>
+                  <span className="font-medium text-lg text-primary">{formatCurrency(selectedDelivery.totalAmount || 0)}</span>
                 </div>
                 {selectedDelivery.signedBy && (
                   <div>
-                    <span className="text-gray-600">Signed By:</span>
-                    <span className="ml-2 font-medium">{selectedDelivery.signedBy}</span>
+                    <span className="text-gray-600 block mb-1">Signed By:</span>
+                    <span className="font-medium">{selectedDelivery.signedBy}</span>
                   </div>
                 )}
                 <div>
-                  <span className="text-gray-600">Invoiced:</span>
-                  <span className={`ml-2 px-2 py-1 rounded text-xs font-medium ${
+                  <span className="text-gray-600 block mb-1">Invoiced:</span>
+                  <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${
                     selectedDelivery.isInvoiced ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'
                   }`}>
                     {selectedDelivery.isInvoiced ? 'Yes' : 'No'}
@@ -431,7 +515,11 @@ const Deliveries = () => {
             </div>
             
             <div className="mt-6 flex justify-end">
-              <Button variant="outline" onClick={() => { setShowDetailsModal(false); setSelectedDelivery(null); }}>
+              <Button 
+                variant="outline" 
+                onClick={() => { setShowDetailsModal(false); setSelectedDelivery(null); }}
+                className="w-full sm:w-auto"
+              >
                 {t('common.close')}
               </Button>
             </div>

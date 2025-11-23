@@ -205,18 +205,24 @@ const Collections = () => {
           
           <div>
             <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">{t('vendor.endDate')}</label>
-            <div className="flex gap-2">
-              <Input
-                type="date"
-                name="endDate"
-                value={filters.endDate}
-                onChange={handleFilterChange}
-                className="mb-0 flex-1"
-              />
-              <Button variant="outline" size="small" onClick={clearFilters} className="whitespace-nowrap">
-                Clear
-              </Button>
-            </div>
+            <Input
+              type="date"
+              name="endDate"
+              value={filters.endDate}
+              onChange={handleFilterChange}
+              className="mb-0"
+            />
+          </div>
+          
+          <div className="sm:col-span-2 lg:col-span-1 flex items-end">
+            <Button 
+              variant="outline" 
+              size="small" 
+              onClick={clearFilters} 
+              className="w-full sm:w-auto whitespace-nowrap"
+            >
+              Clear Filters
+            </Button>
           </div>
         </div>
       </Card>
@@ -245,9 +251,9 @@ const Collections = () => {
         </Card>
       </div>
 
-      {/* Collections Table */}
+      {/* Collections Table - Desktop View */}
       <Card className="overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full min-w-[800px]">
             <thead className="bg-gray-50">
               <tr>
@@ -317,31 +323,101 @@ const Collections = () => {
             </tbody>
           </table>
         </div>
+
+        {/* Mobile Card View */}
+        <div className="md:hidden">
+          {collections.length === 0 ? (
+            <div className="px-4 py-8 text-center text-gray-500">
+              {t('vendor.noCollections')}
+            </div>
+          ) : (
+            <div className="space-y-4 p-4">
+              {collections.map((collection) => (
+                <div key={collection._id} className="border border-gray-200 rounded-lg p-4 space-y-3 bg-white hover:bg-gray-50 transition-colors">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="text-sm font-medium text-gray-900 mb-1">
+                        {collection.supplierId?.name || 'N/A'}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {formatDate(collection.createdAt)}
+                      </div>
+                    </div>
+                    <span className={`px-2 py-1 rounded text-xs font-medium whitespace-nowrap ${
+                      collection.status === 'completed' ? 'bg-green-100 text-green-800' :
+                      collection.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                      'bg-red-100 text-red-800'
+                    }`}>
+                      {collection.status}
+                    </span>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <span className="text-gray-600 text-xs">{t('vendor.driver')}:</span>
+                      <div className="font-medium text-gray-900">{collection.driverId?.name || 'N/A'}</div>
+                    </div>
+                    <div>
+                      <span className="text-gray-600 text-xs">{t('vendor.vehicle')}:</span>
+                      <div className="font-medium text-gray-900">{collection.vehicleId?.vehicleNumber || 'N/A'}</div>
+                    </div>
+                    <div>
+                      <span className="text-gray-600 text-xs">Tankers:</span>
+                      <div className="font-medium text-gray-900">{formatTankerCount(collection.quantity, collection?.vehicleId)}</div>
+                    </div>
+                    <div>
+                      <span className="text-gray-600 text-xs">Rate:</span>
+                      <div className="font-medium text-gray-900">{formatCurrency(perTankerRate(collection.purchaseRate, collection?.vehicleId))}/Tanker</div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center justify-between pt-2 border-t border-gray-200">
+                    <div>
+                      <span className="text-xs text-gray-600">{t('vendor.amount')}:</span>
+                      <div className="text-lg font-bold text-primary">
+                        {formatCurrency(collection.totalAmount || 0)}
+                      </div>
+                    </div>
+                    <Button
+                      size="small"
+                      variant="outline"
+                      onClick={() => openDetailsModal(collection)}
+                      className="text-xs"
+                    >
+                      {t('vendor.viewDetails')}
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </Card>
 
       {/* Collection Details Modal */}
       {showDetailsModal && selectedCollection && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className="bg-white rounded-lg max-w-2xl w-full p-4 sm:p-6 my-auto max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4 overflow-y-auto">
+          <div className="bg-white rounded-lg max-w-2xl w-full p-4 sm:p-6 my-auto max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-gray-800">{t('vendor.collectionDetails')}</h2>
+              <h2 className="text-lg sm:text-xl font-bold text-gray-800">{t('vendor.collectionDetails')}</h2>
               <button
                 onClick={() => { setShowDetailsModal(false); setSelectedCollection(null); }}
-                className="text-gray-500 hover:text-gray-700"
+                className="text-gray-500 hover:text-gray-700 text-2xl leading-none p-1"
+                aria-label="Close"
               >
                 ✕
               </button>
             </div>
             
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                 <div>
-                  <span className="text-gray-600">{t('vendor.date')}:</span>
-                  <span className="ml-2 font-medium">{formatDate(selectedCollection.createdAt)}</span>
+                  <span className="text-gray-600 block mb-1">{t('vendor.date')}:</span>
+                  <span className="font-medium">{formatDate(selectedCollection.createdAt)}</span>
                 </div>
                 <div>
-                  <span className="text-gray-600">{t('common.status')}:</span>
-                  <span className={`ml-2 px-2 py-1 rounded text-xs font-medium ${
+                  <span className="text-gray-600 block mb-1">{t('common.status')}:</span>
+                  <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${
                     selectedCollection.status === 'completed' ? 'bg-green-100 text-green-800' :
                     selectedCollection.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
                     'bg-red-100 text-red-800'
@@ -350,28 +426,28 @@ const Collections = () => {
                   </span>
                 </div>
                 <div>
-                  <span className="text-gray-600">{t('vendor.driver')}:</span>
-                  <span className="ml-2 font-medium">{selectedCollection.driverId?.name || 'N/A'}</span>
+                  <span className="text-gray-600 block mb-1">{t('vendor.driver')}:</span>
+                  <span className="font-medium">{selectedCollection.driverId?.name || 'N/A'}</span>
                 </div>
                 <div>
-                  <span className="text-gray-600">{t('vendor.vehicle')}:</span>
-                  <span className="ml-2 font-medium">{selectedCollection.vehicleId?.vehicleNumber || 'N/A'}</span>
+                  <span className="text-gray-600 block mb-1">{t('vendor.vehicle')}:</span>
+                  <span className="font-medium">{selectedCollection.vehicleId?.vehicleNumber || 'N/A'}</span>
                 </div>
                 <div>
-                  <span className="text-gray-600">{t('vendor.supplierName')}:</span>
-                  <span className="ml-2 font-medium">{selectedCollection.supplierId?.name || 'N/A'}</span>
+                  <span className="text-gray-600 block mb-1">{t('vendor.supplierName')}:</span>
+                  <span className="font-medium">{selectedCollection.supplierId?.name || 'N/A'}</span>
                 </div>
                 <div>
-                  <span className="text-gray-600">Tankers:</span>
-                  <span className="ml-2 font-medium">{formatTankerCount(selectedCollection.quantity, selectedCollection?.vehicleId)}</span>
+                  <span className="text-gray-600 block mb-1">Tankers:</span>
+                  <span className="font-medium">{formatTankerCount(selectedCollection.quantity, selectedCollection?.vehicleId)}</span>
                 </div>
                 <div>
-                  <span className="text-gray-600">Rate:</span>
-                  <span className="ml-2 font-medium">{formatCurrency(perTankerRate(selectedCollection.purchaseRate, selectedCollection?.vehicleId))}/Tanker</span>
+                  <span className="text-gray-600 block mb-1">Rate:</span>
+                  <span className="font-medium">{formatCurrency(perTankerRate(selectedCollection.purchaseRate, selectedCollection?.vehicleId))}/Tanker</span>
                 </div>
                 <div>
-                  <span className="text-gray-600">{t('vendor.amount')}:</span>
-                  <span className="ml-2 font-medium text-lg text-primary">{formatCurrency(selectedCollection.totalAmount || 0)}</span>
+                  <span className="text-gray-600 block mb-1">{t('vendor.amount')}:</span>
+                  <span className="font-medium text-lg text-primary">{formatCurrency(selectedCollection.totalAmount || 0)}</span>
                 </div>
               </div>
               
@@ -393,7 +469,11 @@ const Collections = () => {
             </div>
             
             <div className="mt-6 flex justify-end">
-              <Button variant="outline" onClick={() => { setShowDetailsModal(false); setSelectedCollection(null); }}>
+              <Button 
+                variant="outline" 
+                onClick={() => { setShowDetailsModal(false); setSelectedCollection(null); }}
+                className="w-full sm:w-auto"
+              >
                 {t('common.close')}
               </Button>
             </div>

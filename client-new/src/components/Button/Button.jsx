@@ -10,7 +10,7 @@ const Button = ({
   className = '',
   ...props
 }) => {
-  const baseClasses = 'font-medium rounded-md transition-all duration-150 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
+  const baseClasses = 'font-medium rounded-lg transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
   
   const variantClasses = {
     primary: 'bg-primary text-white hover:bg-primary-hover focus:ring-primary',
@@ -23,8 +23,8 @@ const Button = ({
   };
   
   const sizeClasses = {
-    small: 'text-sm py-1.5 px-3',
-    medium: 'text-base py-2 px-4',
+    small: 'text-sm py-2 px-4',
+    medium: 'text-base py-2.5 px-5',
     large: 'text-lg py-3 px-6',
   };
 

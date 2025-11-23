@@ -93,17 +93,30 @@ const invoiceSchema = new mongoose.Schema({
 // Generate invoice number before saving
 invoiceSchema.pre('save', async function(next) {
   if (!this.invoiceNumber) {
-    const prefix = this.type === 'purchase' ? 'PUR' : this.type === 'delivery' ? 'DEL' : 'MON';
-    const year = new Date().getFullYear();
-    const month = String(new Date().getMonth() + 1).padStart(2, '0');
-    const count = await mongoose.model('Invoice').countDocuments({ 
-      type: this.type,
-      createdAt: {
-        $gte: new Date(year, new Date().getMonth(), 1),
-        $lt: new Date(year, new Date().getMonth() + 1, 1),
-      }
-    });
-    this.invoiceNumber = `${prefix}-${year}${month}-${String(count + 1).padStart(4, '0')}`;
+    try {
+      const prefix = this.type === 'purchase' ? 'PUR' : this.type === 'delivery' ? 'DEL' : 'MON';
+      const year = new Date().getFullYear();
+      const month = String(new Date().getMonth() + 1).padStart(2, '0');
+      
+      // Count existing invoices of this type in current month
+      const startOfMonth = new Date(year, new Date().getMonth(), 1);
+      const endOfMonth = new Date(year, new Date().getMonth() + 1, 1);
+      
+      const count = await mongoose.model('Invoice').countDocuments({ 
+        vendorId: this.vendorId,
+        type: this.type,
+        createdAt: {
+          $gte: startOfMonth,
+          $lt: endOfMonth,
+        }
+      });
+      
+      this.invoiceNumber = `${prefix}-${year}${month}-${String(count + 1).padStart(4, '0')}`;
+    } catch (error) {
+      // Fallback invoice number if count fails
+      const timestamp = Date.now().toString().slice(-6);
+      this.invoiceNumber = `INV-${timestamp}`;
+    }
   }
   next();
 });

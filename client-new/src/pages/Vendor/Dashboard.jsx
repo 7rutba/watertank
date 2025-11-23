@@ -1,7 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import PageHeader from '../../components/PageHeader';
+import StatsCard from '../../components/StatsCard';
 import Card from '../../components/Card';
+import Button from '../../components/Button';
+import LoadingState from '../../components/LoadingState';
+import EmptyState from '../../components/EmptyState';
 import usePermissions from '../../hooks/usePermissions';
 import api from '../../utils/api';
 
@@ -65,196 +70,170 @@ const Dashboard = () => {
 
   if (loading) {
     return (
-      <div className="space-y-4 sm:space-y-6">
-        <div className="mb-4 sm:mb-6">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">{t('vendor.dashboard')}</h1>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-          {[1, 2, 3, 4].map((i) => (
-            <Card key={i} className="p-4 sm:p-6 animate-pulse">
-              <div className="h-20 bg-gray-200 rounded"></div>
-            </Card>
-          ))}
-        </div>
-        <div className="text-center py-12">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          <p className="mt-4 text-gray-600">{t('common.loading')}</p>
-        </div>
+      <div className="space-y-6">
+        <PageHeader title={t('vendor.dashboard')} />
+        <LoadingState message={t('common.loading')} />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="space-y-4 sm:space-y-6">
-        <div className="mb-4 sm:mb-6">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">{t('vendor.dashboard')}</h1>
-        </div>
+      <div className="space-y-6">
+        <PageHeader title={t('vendor.dashboard')} />
         <Card>
-          <div className="text-center py-8">
-            <div className="text-red-500 text-4xl mb-4">⚠️</div>
-            <h3 className="text-lg font-semibold text-gray-800 mb-2">Error Loading Dashboard</h3>
-            <p className="text-gray-600 mb-4">{error}</p>
-            <button
-              onClick={fetchDashboardData}
-              className="px-4 py-2 bg-primary text-white rounded hover:bg-primary-hover"
-            >
-              Retry
-            </button>
-          </div>
+          <EmptyState
+            icon="⚠️"
+            title="Error Loading Dashboard"
+            message={error}
+            action={
+              <Button onClick={fetchDashboardData}>
+                Retry
+              </Button>
+            }
+          />
         </Card>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className="space-y-6 sm:space-y-8">
       {/* Page Header */}
-      <div className="mb-4 sm:mb-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">{t('vendor.dashboard')}</h1>
-            <p className="text-sm sm:text-base text-gray-600 mt-1">Welcome back! Here's your business overview.</p>
-          </div>
-          <button
+      <PageHeader
+        title={t('vendor.dashboard')}
+        subtitle="Welcome back! Here's your business overview."
+        actions={
+          <Button
+            variant="outline"
+            size="small"
             onClick={fetchDashboardData}
-            className="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-            title="Refresh data"
+            className="flex items-center gap-2"
           >
-            🔄 Refresh
-          </button>
-        </div>
-      </div>
+            <span>🔄</span>
+            <span>Refresh</span>
+          </Button>
+        }
+      />
 
-      {/* Today's Stats */}
+      {/* Main Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-        <Card className="p-4 sm:p-6">
-          <div className="flex items-center justify-between">
-            <div className="flex-1 min-w-0">
-              <p className="text-xs sm:text-sm text-gray-600 mb-1">{t('vendor.todayRevenue')}</p>
-              <p className="text-xl sm:text-2xl font-bold text-gray-800">{formatCurrency(stats.todayRevenue)}</p>
-              <p className="text-xs text-gray-500 mt-1">{stats.todayDeliveries} {t('vendor.deliveries')}</p>
-            </div>
-            <div className="bg-green-500 p-2 sm:p-3 rounded-lg flex-shrink-0 ml-2">
-              <span className="text-xl sm:text-2xl">💰</span>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="p-4 sm:p-6">
-          <div className="flex items-center justify-between">
-            <div className="flex-1 min-w-0">
-              <p className="text-xs sm:text-sm text-gray-600 mb-1">{t('vendor.monthlyProfit')}</p>
-              <p className={`text-xl sm:text-2xl font-bold ${stats.monthlyProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {formatCurrency(stats.monthlyProfit)}
-              </p>
-              <p className="text-xs text-gray-500 mt-1">
-                {t('vendor.revenue')}: {formatCurrency(stats.monthlyRevenue)}
-              </p>
-            </div>
-            <div className="bg-blue-500 p-2 sm:p-3 rounded-lg flex-shrink-0 ml-2">
-              <span className="text-xl sm:text-2xl">📈</span>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="p-4 sm:p-6">
-          <div className="flex items-center justify-between">
-            <div className="flex-1 min-w-0">
-              <p className="text-xs sm:text-sm text-gray-600 mb-1">{t('vendor.outstandingReceivables')}</p>
-              <p className="text-xl sm:text-2xl font-bold text-orange-600">{formatCurrency(stats.outstandingFromSocieties)}</p>
-              <p className="text-xs text-gray-500 mt-1">{t('vendor.fromSocieties')}</p>
-            </div>
-            <div className="bg-orange-500 p-2 sm:p-3 rounded-lg flex-shrink-0 ml-2">
-              <span className="text-xl sm:text-2xl">📋</span>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="p-4 sm:p-6">
-          <div className="flex items-center justify-between">
-            <div className="flex-1 min-w-0">
-              <p className="text-xs sm:text-sm text-gray-600 mb-1">{t('vendor.outstandingPayables')}</p>
-              <p className="text-xl sm:text-2xl font-bold text-red-600">{formatCurrency(stats.outstandingToSuppliers)}</p>
-              <p className="text-xs text-gray-500 mt-1">{t('vendor.toSuppliers')}</p>
-            </div>
-            <div className="bg-red-500 p-2 sm:p-3 rounded-lg flex-shrink-0 ml-2">
-              <span className="text-xl sm:text-2xl">💸</span>
-            </div>
-          </div>
-        </Card>
+        <StatsCard
+          title={t('vendor.todayRevenue')}
+          value={formatCurrency(stats.todayRevenue)}
+          subtitle={`${stats.todayDeliveries} ${t('vendor.deliveries')}`}
+          icon="💰"
+          iconBg="bg-green-500"
+        />
+        <StatsCard
+          title={t('vendor.monthlyProfit')}
+          value={formatCurrency(stats.monthlyProfit)}
+          subtitle={`${t('vendor.revenue')}: ${formatCurrency(stats.monthlyRevenue)}`}
+          icon="📈"
+          iconBg={stats.monthlyProfit >= 0 ? 'bg-blue-500' : 'bg-red-500'}
+        />
+        <StatsCard
+          title={t('vendor.outstandingReceivables')}
+          value={formatCurrency(stats.outstandingFromSocieties)}
+          subtitle={t('vendor.fromSocieties')}
+          icon="📋"
+          iconBg="bg-orange-500"
+        />
+        <StatsCard
+          title={t('vendor.outstandingPayables')}
+          value={formatCurrency(stats.outstandingToSuppliers)}
+          subtitle={t('vendor.toSuppliers')}
+          icon="💸"
+          iconBg="bg-red-500"
+        />
       </div>
 
       {/* Operations Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6">
-        <Card className="p-4 text-center">
-          <div className="text-2xl sm:text-3xl font-bold text-gray-800">{formatNumber(stats.activeDrivers)}</div>
-          <div className="text-xs sm:text-sm text-gray-600 mt-1">{t('vendor.activeDrivers')}</div>
+        <Card className="text-center p-6">
+          <div className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">
+            {formatNumber(stats.activeDrivers)}
+          </div>
+          <div className="text-sm sm:text-base text-gray-600">
+            {t('vendor.activeDrivers')}
+          </div>
         </Card>
-        <Card className="p-4 text-center">
-          <div className="text-2xl sm:text-3xl font-bold text-gray-800">{formatNumber(stats.activeVehicles)}</div>
-          <div className="text-xs sm:text-sm text-gray-600 mt-1">{t('vendor.activeVehicles')}</div>
+        <Card className="text-center p-6">
+          <div className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">
+            {formatNumber(stats.activeVehicles)}
+          </div>
+          <div className="text-sm sm:text-base text-gray-600">
+            {t('vendor.activeVehicles')}
+          </div>
         </Card>
-        <Card className="p-4 text-center">
-          <div className="text-2xl sm:text-3xl font-bold text-yellow-600">{formatNumber(stats.pendingExpenses)}</div>
-          <div className="text-xs sm:text-sm text-gray-600 mt-1">{t('vendor.pendingExpenses')}</div>
+        <Card className="text-center p-6">
+          <div className="text-3xl sm:text-4xl font-bold text-yellow-600 mb-2">
+            {formatNumber(stats.pendingExpenses)}
+          </div>
+          <div className="text-sm sm:text-base text-gray-600">
+            {t('vendor.pendingExpenses')}
+          </div>
         </Card>
-        <Card className="p-4 text-center">
-          <div className="text-2xl sm:text-3xl font-bold text-blue-600">{formatNumber(stats.todayDeliveries)}</div>
-          <div className="text-xs sm:text-sm text-gray-600 mt-1">{t('vendor.todayDeliveries')}</div>
+        <Card className="text-center p-6">
+          <div className="text-3xl sm:text-4xl font-bold text-blue-600 mb-2">
+            {formatNumber(stats.todayDeliveries)}
+          </div>
+          <div className="text-sm sm:text-base text-gray-600">
+            {t('vendor.todayDeliveries')}
+          </div>
         </Card>
       </div>
 
       {/* Quick Actions */}
-      <Card title={t('vendor.quickActions')}>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+      <Card title={t('vendor.quickActions')} padding="lg">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {hasPermission('canManageDrivers') && (
             <button 
               onClick={() => navigate('/vendor/drivers')}
-              className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-primary hover:bg-primary-light transition-colors text-left"
+              className="p-6 border-2 border-dashed border-gray-300 rounded-xl hover:border-primary hover:bg-primary-light transition-all text-left group"
             >
-              <div className="text-2xl mb-2">👨‍✈️</div>
-              <div className="font-semibold">{t('vendor.manageDrivers')}</div>
+              <div className="text-3xl mb-3 group-hover:scale-110 transition-transform">👨‍✈️</div>
+              <div className="font-semibold text-gray-900 mb-1">{t('vendor.manageDrivers')}</div>
               <div className="text-sm text-gray-600">Add and manage drivers</div>
             </button>
           )}
           {hasPermission('canManageVehicles') && (
             <button 
               onClick={() => navigate('/vendor/vehicles')}
-              className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-primary hover:bg-primary-light transition-colors text-left"
+              className="p-6 border-2 border-dashed border-gray-300 rounded-xl hover:border-primary hover:bg-primary-light transition-all text-left group"
             >
-              <div className="text-2xl mb-2">🚛</div>
-              <div className="font-semibold">{t('vendor.manageVehicles')}</div>
+              <div className="text-3xl mb-3 group-hover:scale-110 transition-transform">🚛</div>
+              <div className="font-semibold text-gray-900 mb-1">{t('vendor.manageVehicles')}</div>
               <div className="text-sm text-gray-600">Manage your vehicles</div>
             </button>
           )}
           {hasPermission('canApproveExpenses') && (
             <button 
               onClick={() => navigate('/vendor/expenses')}
-              className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-primary hover:bg-primary-light transition-colors text-left"
+              className="p-6 border-2 border-dashed border-gray-300 rounded-xl hover:border-primary hover:bg-primary-light transition-all text-left group"
             >
-              <div className="text-2xl mb-2">💰</div>
-              <div className="font-semibold">{t('vendor.reviewExpenses')}</div>
+              <div className="text-3xl mb-3 group-hover:scale-110 transition-transform">💰</div>
+              <div className="font-semibold text-gray-900 mb-1">{t('vendor.reviewExpenses')}</div>
               <div className="text-sm text-gray-600">{stats.pendingExpenses} pending expenses</div>
             </button>
           )}
           {hasPermission('canManageInvoices') && (
             <button 
               onClick={() => navigate('/vendor/invoices')}
-              className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-primary hover:bg-primary-light transition-colors text-left"
+              className="p-6 border-2 border-dashed border-gray-300 rounded-xl hover:border-primary hover:bg-primary-light transition-all text-left group"
             >
-              <div className="text-2xl mb-2">📄</div>
-              <div className="font-semibold">{t('vendor.generateInvoices')}</div>
+              <div className="text-3xl mb-3 group-hover:scale-110 transition-transform">📄</div>
+              <div className="font-semibold text-gray-900 mb-1">{t('vendor.generateInvoices')}</div>
               <div className="text-sm text-gray-600">Create monthly invoices</div>
             </button>
           )}
           {hasPermission('canGenerateReports') && (
             <button 
               onClick={() => navigate('/vendor/reports')}
-              className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-primary hover:bg-primary-light transition-colors text-left"
+              className="p-6 border-2 border-dashed border-gray-300 rounded-xl hover:border-primary hover:bg-primary-light transition-all text-left group"
             >
-              <div className="text-2xl mb-2">📈</div>
-              <div className="font-semibold">{t('vendor.viewReports')}</div>
+              <div className="text-3xl mb-3 group-hover:scale-110 transition-transform">📈</div>
+              <div className="font-semibold text-gray-900 mb-1">{t('vendor.viewReports')}</div>
               <div className="text-sm text-gray-600">View financial reports</div>
             </button>
           )}
@@ -262,45 +241,50 @@ const Dashboard = () => {
       </Card>
 
       {/* Recent Activity */}
-      <Card title={t('vendor.recentActivity')}>
-        <div className="space-y-4">
-          {recentActivities.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <p>{t('common.noData')}</p>
-            </div>
-          ) : (
-            recentActivities.map((activity) => (
-              <div key={activity.id} className="flex items-start gap-4 pb-4 border-b last:border-0">
-                <div className="w-10 h-10 bg-primary-light rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-primary text-lg">{activity.icon || '📋'}</span>
+      <Card title={t('vendor.recentActivity')} padding="lg">
+        {recentActivities.length === 0 ? (
+          <EmptyState
+            icon="📋"
+            title="No recent activity"
+            message="Your recent activities will appear here."
+          />
+        ) : (
+          <div className="space-y-4">
+            {recentActivities.map((activity) => (
+              <div key={activity.id} className="flex items-start gap-4 pb-4 border-b border-gray-200 last:border-0 last:pb-0">
+                <div className="w-12 h-12 bg-primary-light rounded-xl flex items-center justify-center flex-shrink-0">
+                  <span className="text-primary text-xl">{activity.icon || '📋'}</span>
                 </div>
-                <div className="flex-1">
-                  <p className="font-medium text-gray-800">{activity.action}</p>
-                  <p className="text-sm text-gray-600">{activity.description}</p>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-gray-900 mb-1">{activity.action}</p>
+                  <p className="text-sm text-gray-600 mb-2">{activity.description}</p>
                   {activity.amount && (
-                    <p className="text-sm text-green-600 font-medium mt-1">
+                    <p className="text-sm text-green-600 font-medium mb-2">
                       Amount: {formatCurrency(activity.amount)}
                     </p>
                   )}
-                  {activity.status && (
-                    <span className={`inline-block mt-1 px-2 py-0.5 rounded text-xs ${
-                      activity.status === 'approved' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                    }`}>
-                      {activity.status}
-                    </span>
-                  )}
-                  <p className="text-xs text-gray-500 mt-1">
-                    {new Date(activity.time).toLocaleString('en-IN')}
-                  </p>
+                  <div className="flex items-center gap-3 flex-wrap">
+                    {activity.status && (
+                      <span className={`inline-block px-3 py-1 rounded-lg text-xs font-medium ${
+                        activity.status === 'approved' ? 'bg-green-100 text-green-800' : 
+                        activity.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {activity.status}
+                      </span>
+                    )}
+                    <p className="text-xs text-gray-500">
+                      {new Date(activity.time).toLocaleString('en-IN')}
+                    </p>
+                  </div>
                 </div>
               </div>
-            ))
-          )}
-        </div>
+            ))}
+          </div>
+        )}
       </Card>
     </div>
   );
 };
 
 export default Dashboard;
-

@@ -58,11 +58,30 @@ const getInvoice = asyncHandler(async (req, res) => {
   res.json(invoice);
 });
 
-// @desc    Generate monthly invoice (Automated)
+// @desc    Generate invoice for custom date range
 // @route   POST /api/invoices/generate-monthly
 // @access  Private (Vendor, Accountant)
 const generateMonthlyInvoice = asyncHandler(async (req, res) => {
   const { relatedId, relatedTo, startDate, endDate } = req.body;
+  
+  // Validate required fields
+  if (!relatedId || !relatedTo || !startDate || !endDate) {
+    return res.status(400).json({ 
+      message: 'Missing required fields: relatedId, relatedTo, startDate, endDate' 
+    });
+  }
+  
+  // Validate date range
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  
+  if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+    return res.status(400).json({ message: 'Invalid date format' });
+  }
+  
+  if (start > end) {
+    return res.status(400).json({ message: 'Start date must be before end date' });
+  }
   
   if (relatedTo === 'society') {
     // Generate invoice for society deliveries
@@ -96,8 +115,35 @@ const generateMonthlyInvoice = asyncHandler(async (req, res) => {
     const subtotal = items.reduce((sum, item) => sum + item.amount, 0);
     const total = subtotal; // Add tax/discount logic here if needed
     
+    // Generate invoice number before creating
+    let invoiceNumber;
+    try {
+      const prefix = 'MON';
+      const year = new Date().getFullYear();
+      const month = String(new Date().getMonth() + 1).padStart(2, '0');
+      const startOfMonth = new Date(year, new Date().getMonth(), 1);
+      const endOfMonth = new Date(year, new Date().getMonth() + 1, 1);
+      
+      const count = await Invoice.countDocuments({ 
+        vendorId: req.vendorId,
+        type: 'monthly',
+        createdAt: {
+          $gte: startOfMonth,
+          $lt: endOfMonth,
+        }
+      });
+      
+      invoiceNumber = `${prefix}-${year}${month}-${String(count + 1).padStart(4, '0')}`;
+    } catch (error) {
+      console.error('Error generating invoice number:', error);
+      // Fallback: use timestamp-based invoice number
+      const timestamp = Date.now().toString().slice(-8);
+      invoiceNumber = `MON-${timestamp}`;
+    }
+    
     const invoice = await Invoice.create({
       vendorId: req.vendorId,
+      invoiceNumber,
       type: 'monthly',
       relatedTo: 'society',
       relatedId,
@@ -154,8 +200,35 @@ const generateMonthlyInvoice = asyncHandler(async (req, res) => {
     const subtotal = items.reduce((sum, item) => sum + item.amount, 0);
     const total = subtotal;
     
+    // Generate invoice number before creating
+    let invoiceNumber;
+    try {
+      const prefix = 'MON';
+      const year = new Date().getFullYear();
+      const month = String(new Date().getMonth() + 1).padStart(2, '0');
+      const startOfMonth = new Date(year, new Date().getMonth(), 1);
+      const endOfMonth = new Date(year, new Date().getMonth() + 1, 1);
+      
+      const count = await Invoice.countDocuments({ 
+        vendorId: req.vendorId,
+        type: 'monthly',
+        createdAt: {
+          $gte: startOfMonth,
+          $lt: endOfMonth,
+        }
+      });
+      
+      invoiceNumber = `${prefix}-${year}${month}-${String(count + 1).padStart(4, '0')}`;
+    } catch (error) {
+      console.error('Error generating invoice number:', error);
+      // Fallback: use timestamp-based invoice number
+      const timestamp = Date.now().toString().slice(-8);
+      invoiceNumber = `MON-${timestamp}`;
+    }
+    
     const invoice = await Invoice.create({
       vendorId: req.vendorId,
+      invoiceNumber,
       type: 'monthly',
       relatedTo: 'supplier',
       relatedId,

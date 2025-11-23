@@ -19,6 +19,11 @@ import {
   Payments as VendorPayments,
   Reports as VendorReports,
   Financials as VendorFinancials,
+  AllPayments as VendorAllPayments,
+  SupplierPayments as VendorSupplierPayments,
+  SocietyPayments as VendorSocietyPayments,
+  DriverPayments as VendorDriverPayments,
+  RecordPayment as VendorRecordPayment,
 } from './pages/Vendor';
 import { 
   Dashboard as DriverDashboard, 
@@ -81,7 +86,11 @@ function App() {
           <Route path="deliveries" element={<VendorDeliveries />} />
           <Route path="expenses" element={<VendorExpenses />} />
           <Route path="invoices" element={<VendorInvoices />} />
-          <Route path="payments" element={<VendorPayments />} />
+          <Route path="payments" element={<VendorAllPayments />} />
+          <Route path="payments/suppliers" element={<VendorSupplierPayments />} />
+          <Route path="payments/societies" element={<VendorSocietyPayments />} />
+          <Route path="payments/drivers" element={<VendorDriverPayments />} />
+          <Route path="payments/record" element={<VendorRecordPayment />} />
           <Route path="reports" element={<VendorReports />} />
           <Route path="financials" element={<VendorFinancials />} />
           <Route path="accountants" element={<VendorAccountants />} />

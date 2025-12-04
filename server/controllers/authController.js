@@ -56,32 +56,51 @@ const register = asyncHandler(async (req, res) => {
 const login = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
 
+  if (!email || !password) {
+    return res.status(400).json({ message: 'Please provide email and password' });
+  }
+
+  // Normalize email to lowercase (matching schema)
+  const normalizedEmail = email.toLowerCase().trim();
+
   // Check for user email
-  const user = await User.findOne({ email })
+  const user = await User.findOne({ email: normalizedEmail })
     .populate('vendorId')
     .populate('societyId');
 
-  if (user && (await user.comparePassword(password))) {
-    // Update last login
-    user.lastLogin = new Date();
-    await user.save();
-
-    // Get permissions for the user's role
-    const permissions = getPermissionsByRole(user.role);
-
-    res.json({
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      vendorId: user.vendorId,
-      societyId: user.societyId,
-      permissions,
-      token: generateToken(user._id),
-    });
-  } else {
-    res.status(401).json({ message: 'Invalid email or password' });
+  if (!user) {
+    return res.status(401).json({ message: 'Invalid email or password' });
   }
+
+  // Check if user is active
+  if (!user.isActive) {
+    return res.status(403).json({ message: 'Your account has been deactivated. Please contact support.' });
+  }
+
+  // Compare password
+  const isPasswordValid = await user.comparePassword(password);
+  
+  if (!isPasswordValid) {
+    return res.status(401).json({ message: 'Invalid email or password' });
+  }
+
+  // Update last login
+  user.lastLogin = new Date();
+  await user.save();
+
+  // Get permissions for the user's role
+  const permissions = getPermissionsByRole(user.role);
+
+  res.json({
+    _id: user._id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    vendorId: user.vendorId,
+    societyId: user.societyId,
+    permissions,
+    token: generateToken(user._id),
+  });
 });
 
 // @desc    Get current logged in user

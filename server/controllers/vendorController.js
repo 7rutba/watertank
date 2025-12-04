@@ -91,14 +91,17 @@ const createVendor = asyncHandler(async (req, res) => {
     billingCycle = 'monthly',
   } = req.body;
 
+  // Normalize email to lowercase (matching User schema)
+  const normalizedEmail = email.toLowerCase().trim();
+
   // Check if vendor email already exists
-  const existingVendor = await Vendor.findOne({ email });
+  const existingVendor = await Vendor.findOne({ email: normalizedEmail });
   if (existingVendor) {
     return res.status(400).json({ message: 'Vendor with this email already exists' });
   }
 
   // Check if user with this email already exists
-  const existingUser = await User.findOne({ email });
+  const existingUser = await User.findOne({ email: normalizedEmail });
   if (existingUser) {
     return res.status(400).json({ message: 'User with this email already exists' });
   }
@@ -154,7 +157,7 @@ const createVendor = asyncHandler(async (req, res) => {
     vendorId,
     businessName,
     ownerName,
-    email,
+    email: normalizedEmail,
     phone,
     address: address || {},
     gstNumber,
@@ -178,7 +181,7 @@ const createVendor = asyncHandler(async (req, res) => {
   // Create user account for vendor
   const vendorUser = await User.create({
     name: ownerName,
-    email,
+    email: normalizedEmail,
     password: vendorPassword,
     role: 'vendor',
     phone,
@@ -209,7 +212,7 @@ const createVendor = asyncHandler(async (req, res) => {
     vendor: populatedVendor,
     credentials: {
       vendorId,
-      email,
+      email: normalizedEmail,
       password: vendorPassword, // Return plain password only on creation
       userId: vendorUser._id,
     },

@@ -6,6 +6,7 @@ const {
   createVendor,
   updateVendor,
   deleteVendor,
+  resetVendorPassword,
 } = require('../controllers/vendorController');
 const { protect, superAdminOnly, vendorAccess } = require('../middleware/auth');
 
@@ -19,6 +20,9 @@ router.route('/:id')
   .get(vendorAccess, getVendor)
   .put(vendorAccess, updateVendor)
   .delete(superAdminOnly, deleteVendor);
+
+router.route('/:id/reset-password')
+  .put(superAdminOnly, resetVendorPassword);
 
 module.exports = router;
 

@@ -39,6 +39,13 @@ const Vendors = () => {
   const [createdCredentials, setCreatedCredentials] = useState(null);
   const [editingVendor, setEditingVendor] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
+  const [resetPasswordData, setResetPasswordData] = useState({
+    vendorId: '',
+    generatePassword: true,
+    password: '',
+  });
+  const [resetPasswordCredentials, setResetPasswordCredentials] = useState(null);
 
   useEffect(() => {
     fetchVendors();
@@ -316,7 +323,7 @@ const Vendors = () => {
                       {vendor.subscription?.plan || 'basic'}
                     </td>
                     <td className="py-3 px-3 sm:px-4">
-                      <div className="flex gap-1 sm:gap-2">
+                      <div className="flex flex-wrap gap-1 sm:gap-2">
                         {hasPermission(SUPER_ADMIN_PERMISSIONS.CAN_EDIT_VENDORS) && (
                           <Button 
                             size="small" 
@@ -325,6 +332,24 @@ const Vendors = () => {
                             onClick={() => handleEdit(vendor)}
                           >
                             {t('common.edit')}
+                          </Button>
+                        )}
+                        {hasPermission(SUPER_ADMIN_PERMISSIONS.CAN_EDIT_VENDORS) && (
+                          <Button 
+                            size="small" 
+                            variant="outline" 
+                            className="text-xs px-2"
+                            onClick={() => {
+                              setResetPasswordData({
+                                vendorId: vendor._id,
+                                generatePassword: true,
+                                password: '',
+                              });
+                              setResetPasswordCredentials(null);
+                              setShowResetPasswordModal(true);
+                            }}
+                          >
+                            Reset Password
                           </Button>
                         )}
                         {hasPermission(SUPER_ADMIN_PERMISSIONS.CAN_DELETE_VENDORS) && (
@@ -498,7 +523,7 @@ const Vendors = () => {
               <div className="border-t pt-4">
                 <h3 className="text-sm font-semibold text-gray-700 mb-3">Password Settings</h3>
                 <div className="space-y-3">
-                  <label className="flex items-center">
+                  <label className="flex items-center cursor-pointer">
                     <input
                       type="checkbox"
                       checked={formData.generatePassword}
@@ -507,20 +532,45 @@ const Vendors = () => {
                         generatePassword: e.target.checked,
                         password: e.target.checked ? '' : formData.password
                       })}
-                      className="mr-2"
+                      className="mr-2 w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary"
                     />
-                    <span className="text-sm text-gray-700">Generate random password automatically</span>
+                    <span className="text-sm text-gray-700">Generate secure random password automatically</span>
                   </label>
                   {!formData.generatePassword && (
-                    <Input
-                      label="Set Password"
-                      type="password"
-                      name="password"
-                      value={formData.password}
-                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                      required={!formData.generatePassword}
-                      placeholder="Enter password (min 6 characters)"
-                    />
+                    <div className="space-y-2">
+                      <Input
+                        label="Set Custom Password"
+                        type="password"
+                        name="password"
+                        value={formData.password}
+                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                        required={!formData.generatePassword}
+                        placeholder="Enter password (minimum 6 characters)"
+                        className="mb-0"
+                      />
+                      <div className="text-xs text-gray-500 space-y-1">
+                        <p>Password requirements:</p>
+                        <ul className="list-disc list-inside space-y-0.5 ml-2">
+                          <li className={formData.password.length >= 6 ? 'text-green-600' : ''}>
+                            At least 6 characters {formData.password.length >= 6 ? '✓' : ''}
+                          </li>
+                          <li className={formData.password.length >= 8 ? 'text-green-600' : ''}>
+                            Recommended: 8+ characters for better security {formData.password.length >= 8 ? '✓' : ''}
+                          </li>
+                        </ul>
+                        {formData.password && formData.password.length < 6 && (
+                          <p className="text-red-600 mt-1">Password must be at least 6 characters long</p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  {formData.generatePassword && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                      <p className="text-xs text-blue-800">
+                        A secure random password will be generated and displayed after vendor creation. 
+                        Make sure to save it as it won't be shown again.
+                      </p>
+                    </div>
                   )}
                 </div>
               </div>
@@ -713,6 +763,158 @@ const Vendors = () => {
                 </Button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Reset Password Modal */}
+      {showResetPasswordModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-white rounded-lg max-w-md w-full p-4 sm:p-6 my-auto">
+            {!resetPasswordCredentials ? (
+              <>
+                <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-4">Reset Vendor Password</h2>
+                <form onSubmit={async (e) => {
+                  e.preventDefault();
+                  try {
+                    setError('');
+                    const payload = {
+                      password: resetPasswordData.generatePassword ? undefined : resetPasswordData.password,
+                      generatePassword: resetPasswordData.generatePassword,
+                    };
+                    const response = await api.put(`/vendors/${resetPasswordData.vendorId}/reset-password`, payload);
+                    setResetPasswordCredentials(response.data.credentials);
+                  } catch (error) {
+                    console.error('Error resetting password:', error);
+                    setError(error.response?.data?.message || 'Failed to reset password');
+                  }
+                }} className="space-y-4">
+                  {error && (
+                    <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+                      {error}
+                    </div>
+                  )}
+                  <div className="space-y-3">
+                    <label className="flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={resetPasswordData.generatePassword}
+                        onChange={(e) => setResetPasswordData({ 
+                          ...resetPasswordData, 
+                          generatePassword: e.target.checked,
+                          password: e.target.checked ? '' : resetPasswordData.password
+                        })}
+                        className="mr-2 w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary"
+                      />
+                      <span className="text-sm text-gray-700">Generate secure random password automatically</span>
+                    </label>
+                    {!resetPasswordData.generatePassword && (
+                      <div className="space-y-2">
+                        <Input
+                          label="Set Custom Password"
+                          type="password"
+                          name="password"
+                          value={resetPasswordData.password}
+                          onChange={(e) => setResetPasswordData({ ...resetPasswordData, password: e.target.value })}
+                          required={!resetPasswordData.generatePassword}
+                          placeholder="Enter password (minimum 6 characters)"
+                          className="mb-0"
+                        />
+                        <div className="text-xs text-gray-500">
+                          {resetPasswordData.password && resetPasswordData.password.length < 6 && (
+                            <p className="text-red-600">Password must be at least 6 characters long</p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex gap-3 pt-4">
+                    <Button type="submit" variant="primary" className="flex-1" disabled={!resetPasswordData.generatePassword && resetPasswordData.password.length < 6}>
+                      Reset Password
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setShowResetPasswordModal(false);
+                        setResetPasswordData({ vendorId: '', generatePassword: true, password: '' });
+                        setResetPasswordCredentials(null);
+                        setError('');
+                      }}
+                      className="flex-1"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </form>
+              </>
+            ) : (
+              <>
+                <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-4">Password Reset Successfully!</h2>
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+                  <p className="text-sm text-green-800 mb-2">
+                    Please save these credentials. They will not be shown again.
+                  </p>
+                </div>
+                <div className="space-y-3 mb-4">
+                  <div className="bg-gray-50 p-3 rounded border">
+                    <label className="text-xs font-semibold text-gray-600 block mb-1">Email</label>
+                    <div className="flex items-center justify-between">
+                      <code className="text-sm font-mono text-gray-800">{resetPasswordCredentials.email}</code>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(resetPasswordCredentials.email);
+                          alert('Email copied!');
+                        }}
+                        className="text-xs text-blue-600 hover:text-blue-800"
+                      >
+                        Copy
+                      </button>
+                    </div>
+                  </div>
+                  <div className="bg-gray-50 p-3 rounded border">
+                    <label className="text-xs font-semibold text-gray-600 block mb-1">New Password</label>
+                    <div className="flex items-center justify-between">
+                      <code className="text-sm font-mono text-gray-800">{resetPasswordCredentials.password}</code>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(resetPasswordCredentials.password);
+                          alert('Password copied!');
+                        }}
+                        className="text-xs text-blue-600 hover:text-blue-800"
+                      >
+                        Copy
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex gap-3">
+                  <Button
+                    variant="primary"
+                    onClick={() => {
+                      setShowResetPasswordModal(false);
+                      setResetPasswordData({ vendorId: '', generatePassword: true, password: '' });
+                      setResetPasswordCredentials(null);
+                      setError('');
+                    }}
+                    className="flex-1"
+                  >
+                    Done
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      const text = `Email: ${resetPasswordCredentials.email}\nPassword: ${resetPasswordCredentials.password}`;
+                      navigator.clipboard.writeText(text);
+                      alert('Credentials copied to clipboard!');
+                    }}
+                    className="flex-1"
+                  >
+                    Copy All
+                  </Button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

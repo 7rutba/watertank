@@ -364,6 +364,46 @@ const updateVendor = asyncHandler(async (req, res) => {
   res.json(updatedVendor);
 });
 
+// @desc    Reset vendor password (Super Admin only)
+// @route   PUT /api/vendors/:id/reset-password
+// @access  Private/Super Admin
+const resetVendorPassword = asyncHandler(async (req, res) => {
+  const vendor = await Vendor.findById(req.params.id);
+  
+  if (!vendor) {
+    return res.status(404).json({ message: 'Vendor not found' });
+  }
+
+  const { password, generatePassword: shouldGeneratePassword = true } = req.body;
+
+  // Generate or use provided password
+  const vendorPassword = shouldGeneratePassword ? generatePassword() : password;
+  
+  if (!vendorPassword || vendorPassword.length < 6) {
+    return res.status(400).json({ message: 'Password must be at least 6 characters long' });
+  }
+
+  // Find and update vendor user account
+  const vendorUser = await User.findOne({ vendorId: vendor._id, role: 'vendor' });
+  
+  if (!vendorUser) {
+    return res.status(404).json({ message: 'Vendor user account not found' });
+  }
+
+  // Update password (will be hashed by pre-save hook)
+  vendorUser.password = vendorPassword;
+  await vendorUser.save();
+
+  res.json({
+    message: 'Vendor password reset successfully',
+    credentials: {
+      vendorId: vendor.vendorId,
+      email: vendor.email,
+      password: vendorPassword, // Return plain password only on reset
+    },
+  });
+});
+
 // @desc    Delete vendor (Super Admin only)
 // @route   DELETE /api/vendors/:id
 // @access  Private/Super Admin
@@ -384,5 +424,6 @@ module.exports = {
   createVendor,
   updateVendor,
   deleteVendor,
+  resetVendorPassword,
 };
 

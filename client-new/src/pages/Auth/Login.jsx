@@ -1,40 +1,40 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
-import Card from '../../components/Card';
-import Input from '../../components/Input';
-import Button from '../../components/Button';
-import Navbar from '../../components/Navbar';
-import api from '../../utils/api';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import Card from "../../components/Card";
+import Input from "../../components/Input";
+import Button from "../../components/Button";
+import Navbar from "../../components/Navbar";
+import api from "../../utils/api";
 
 const Login = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    email: '',
-    password: '',
+    email: "",
+    password: "",
   });
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
 
   // Redirect if already logged in
   useEffect(() => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem("token");
     if (token) {
-      const userRole = localStorage.getItem('userRole');
+      const userRole = localStorage.getItem("userRole");
       // Route based on stored role to avoid redirect loops
-      if (userRole === 'super_admin') {
-        navigate('/admin/dashboard');
-      } else if (userRole === 'vendor' || userRole === 'accountant') {
-        navigate('/vendor/dashboard');
-      } else if (userRole === 'driver') {
-        navigate('/driver/dashboard');
-      } else if (userRole === 'society_admin') {
-        navigate('/society/dashboard');
+      if (userRole === "super_admin") {
+        navigate("/admin/dashboard");
+      } else if (userRole === "vendor" || userRole === "accountant") {
+        navigate("/vendor/dashboard");
+      } else if (userRole === "driver") {
+        navigate("/driver/dashboard");
+      } else if (userRole === "society_admin") {
+        navigate("/society/dashboard");
       } else {
         // Fallback to login if role is unknown
-        navigate('/login');
+        navigate("/login");
       }
     }
   }, [navigate]);
@@ -44,17 +44,17 @@ const Login = () => {
       ...formData,
       [e.target.name]: e.target.value,
     });
-    setError('');
+    setError("");
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setLoading(true);
 
     try {
-      const response = await api.post('/auth/login', formData);
-      
+      const response = await api.post("/auth/login", formData);
+
       // Store token and user data
       if (response.data.token) {
         const userData = {
@@ -66,29 +66,29 @@ const Login = () => {
           societyId: response.data.societyId,
           permissions: response.data.permissions || {},
         };
-        
-        localStorage.setItem('token', response.data.token);
-        localStorage.setItem('userRole', response.data.role || 'super_admin');
-        localStorage.setItem('user', JSON.stringify(userData));
-        
-            // Redirect based on role
-            const role = response.data.role || 'super_admin';
-            if (role === 'super_admin') {
-              navigate('/admin/dashboard');
-            } else if (role === 'vendor') {
-              navigate('/vendor/dashboard');
-            } else if (role === 'driver') {
-              navigate('/driver/dashboard');
-            } else if (role === 'accountant') {
-              navigate('/vendor/dashboard'); // Accountant uses vendor dashboard
-            } else if (role === 'society_admin') {
-              navigate('/society/dashboard');
-            } else {
-              navigate('/dashboard');
-            }
+
+        localStorage.setItem("token", response.data.token);
+        localStorage.setItem("userRole", response.data.role || "super_admin");
+        localStorage.setItem("user", JSON.stringify(userData));
+
+        // Redirect based on role
+        const role = response.data.role || "super_admin";
+        if (role === "super_admin") {
+          navigate("/admin/dashboard");
+        } else if (role === "vendor") {
+          navigate("/vendor/dashboard");
+        } else if (role === "driver") {
+          navigate("/driver/dashboard");
+        } else if (role === "accountant") {
+          navigate("/vendor/dashboard"); // Accountant uses vendor dashboard
+        } else if (role === "society_admin") {
+          navigate("/society/dashboard");
+        } else {
+          navigate("/dashboard");
+        }
       }
     } catch (err) {
-      setError(err.message || t('auth.invalidCredentials'));
+      setError(err.message || t("auth.invalidCredentials"));
     } finally {
       setLoading(false);
     }
@@ -110,7 +110,7 @@ const Login = () => {
                 <span className="text-2xl sm:text-3xl">💧</span>
               </div>
               <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-800 mb-2">
-                {t('auth.login')}
+                {t("auth.login")}
               </h1>
               <p className="text-xs sm:text-sm lg:text-base text-gray-600">
                 Sign in to your Super Admin account
@@ -131,7 +131,7 @@ const Login = () => {
 
               {/* Email Input */}
               <Input
-                label={t('auth.email')}
+                label={t("auth.email")}
                 type="email"
                 name="email"
                 placeholder="admin@watertank.com"
@@ -144,7 +144,7 @@ const Login = () => {
 
               {/* Password Input */}
               <Input
-                label={t('auth.password')}
+                label={t("auth.password")}
                 type="password"
                 name="password"
                 placeholder="Enter your password"
@@ -164,13 +164,13 @@ const Login = () => {
                     onChange={(e) => setRememberMe(e.target.checked)}
                     className="w-3 h-3 sm:w-4 sm:h-4 text-primary border-gray-300 rounded focus:ring-primary"
                   />
-                  <span className="text-gray-600">{t('auth.rememberMe')}</span>
+                  <span className="text-gray-600">{t("auth.rememberMe")}</span>
                 </label>
                 <button
                   type="button"
                   className="text-primary hover:text-primary-hover font-medium text-xs sm:text-sm"
                 >
-                  {t('auth.forgotPassword')}
+                  {t("auth.forgotPassword")}
                 </button>
               </div>
 
@@ -183,14 +183,30 @@ const Login = () => {
               >
                 {loading ? (
                   <span className="flex items-center justify-center gap-2">
-                    <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    <svg
+                      className="animate-spin h-5 w-5"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
                     </svg>
-                    {t('common.loading')}
+                    {t("common.loading")}
                   </span>
                 ) : (
-                  t('auth.loginButton')
+                  t("auth.loginButton")
                 )}
               </Button>
             </form>
@@ -198,22 +214,32 @@ const Login = () => {
             {/* Footer */}
             <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-gray-200">
               <p className="text-center text-xs sm:text-sm text-gray-500">
-                Need help?{' '}
-                <a href="#" className="text-primary hover:text-primary-hover font-medium">
+                Need help?{" "}
+                <a
+                  href="/contact"
+                  className="text-primary hover:text-primary-hover font-medium"
+                >
                   Contact Support
+                </a>{" "}
+                or call{" "}
+                <a
+                  href="tel:7061274672"
+                  className="text-primary hover:text-primary-hover font-medium"
+                >
+                  +91 7061274672
                 </a>
               </p>
             </div>
           </Card>
 
           {/* Demo Credentials Info (for development) */}
-          {import.meta.env.DEV && (
+          {/* {import.meta.env.DEV && (
             <div className="mt-4 p-3 sm:p-4 bg-blue-50 border border-blue-200 rounded-lg">
               <p className="text-xs text-blue-800 font-medium mb-2">Demo Credentials:</p>
               <p className="text-xs text-blue-700">Email: admin@watertank.com</p>
               <p className="text-xs text-blue-700">Password: admin123</p>
             </div>
-          )}
+          )} */}
         </div>
       </div>
     </div>

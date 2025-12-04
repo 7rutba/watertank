@@ -1,3 +1,4 @@
+import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminLayout from './layouts/AdminLayout';
@@ -24,6 +25,7 @@ import {
   SocietyPayments as VendorSocietyPayments,
   DriverPayments as VendorDriverPayments,
   RecordPayment as VendorRecordPayment,
+  Onboarding as VendorOnboarding,
 } from './pages/Vendor';
 import { 
   Dashboard as DriverDashboard, 
@@ -39,6 +41,8 @@ import {
   Payments as SocietyPayments,
 } from './pages/Society';
 import { Accountants as VendorAccountants } from './pages/Vendor';
+import Homepage from './pages/Homepage';
+import ContactSupport from './pages/ContactSupport';
 import './App.css';
 
 function App() {
@@ -47,6 +51,9 @@ function App() {
       <Routes>
         {/* Public Routes */}
         <Route path="/login" element={<Login />} />
+        <Route path="/vendor/onboarding" element={<VendorOnboarding />} />
+        <Route path="/contact" element={<ContactSupport />} />
+        <Route path="/support" element={<ContactSupport />} />
 
         {/* Super Admin Routes */}
         <Route
@@ -129,8 +136,8 @@ function App() {
           <Route path="payments" element={<SocietyPayments />} />
         </Route>
 
-        {/* Default Route */}
-        <Route path="/" element={<Navigate to="/login" replace />} />
+        {/* Root Route - Homepage with smart redirect */}
+        <Route path="/" element={<Homepage />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>

@@ -16,13 +16,14 @@ router.route('/')
   .get(superAdminOnly, getVendors)
   .post(superAdminOnly, createVendor);
 
+// Specific routes must come before parameterized routes
+router.route('/:id/reset-password')
+  .put(superAdminOnly, resetVendorPassword);
+
 router.route('/:id')
   .get(vendorAccess, getVendor)
   .put(vendorAccess, updateVendor)
   .delete(superAdminOnly, deleteVendor);
-
-router.route('/:id/reset-password')
-  .put(superAdminOnly, resetVendorPassword);
 
 module.exports = router;
 
